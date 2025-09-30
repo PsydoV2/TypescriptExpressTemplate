@@ -180,5 +180,5 @@ npm run start:prod
 
 ## 📜 License
 
-This template is licensed under the **ISC License**.
+This template is licensed under the **MIT License**.
 Feel free to fork and adapt for your own projects.
