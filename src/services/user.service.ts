@@ -16,7 +16,7 @@ export const UserService = {
 
       await UserRepository.deleteUserByID(userID, connection);
 
-      connection.commit();
+      await connection.commit();
 
       return {success: true};
     } catch (error) {

@@ -1,8 +1,6 @@
-import {Request, Response} from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import {DBConnectionPool} from "../config/DBConnectionPool";
-import {LogHelper, LogSeverity} from "../utils/LogHelper";
 import {HTTPCodes} from "../utils/HTTPCodes";
 import {ApiError} from "../utils/ApiError";
 import {UserRepository} from "../repositories/user.repository";

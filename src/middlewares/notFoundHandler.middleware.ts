@@ -1,6 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { HTTPCodes } from "../utils/HTTPCodes";
-import { ApiError } from "../utils/ApiError";
 
 /**
  * Middleware for handling 404 Not Found errors.

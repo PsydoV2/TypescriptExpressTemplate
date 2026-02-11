@@ -1,6 +1,4 @@
 import { DBConnectionPool } from "../config/DBConnectionPool";
-import jwt from "jsonwebtoken";
-import {HTTPCodes} from "../utils/HTTPCodes";
 import {DTOUser} from "../types/User/user";
 
 export const UserRepository = {
@@ -16,7 +14,7 @@ export const UserRepository = {
     },
 
     async findUserByEmail(email: string, connection?: any): Promise<DTOUser> {
-        const db = connection || DBConnectionPool;
+        const db = connection || await DBConnectionPool.getConnection();
 
         const [rows]: any = await db.query(
             "SELECT * FROM Users WHERE email = ?",

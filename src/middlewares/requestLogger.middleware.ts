@@ -11,7 +11,7 @@ export const globalRequestLogger = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        let payload: string = "";
+        let payload: string;
 
         if (req.method === "GET") {
             payload = JSON.stringify(req.query);

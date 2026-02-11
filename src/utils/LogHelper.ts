@@ -121,9 +121,8 @@ export class LogHelper {
     const errorString =
       error instanceof Error ? error.stack || error.message : String(error);
 
-    let connection: any;
+    let connection = await DBConnectionPool.getConnection();
     try {
-      connection = await DBConnectionPool.getConnection();
       await connection.beginTransaction();
 
       // Insert error log into database (adjust schema/table for your project)
@@ -131,14 +130,19 @@ export class LogHelper {
         INSERT INTO ErrorLog (route, error, level)
         VALUES (?, ?, ?)
       `;
-      await connection.execute(insertSQL, [route, errorString, level]);
+
+      const []: any = await connection.query(
+          insertSQL,
+          [route, errorString, level]
+      );
+
       await connection.commit();
-    } catch (dbErr) {
-      console.error("❌ Failed to write to ErrorLog DB:", dbErr);
-      await this.logFile("DBConnection", `DB logging failed: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`, LogSeverity.CRITICAL);
-      if (connection) await connection.rollback();
+    } catch (dbError) {
+      await connection.rollback();
+
+      await this.logFile("DBConnection", `DB logging failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`, LogSeverity.CRITICAL);
     } finally {
-      if (connection) connection.release();
+      connection.release();
     }
   }
 }
