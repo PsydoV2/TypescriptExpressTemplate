@@ -11,12 +11,19 @@ export const globalRequestLogger = async (
     next: NextFunction
 ): Promise<void> => {
     try {
-        const payload = req.body ? JSON.stringify(req.body) : "";
+        let payload: string = "";
 
-        await LogHelper.logRequest(req.originalUrl || req.url, payload);
+        if (req.method === "GET") {
+            payload = JSON.stringify(req.query);
+        } else {
+            payload = req.body ? JSON.stringify(req.body) : "";
+        }
+
+        await LogHelper.logRequest(req.path, payload);
+
     } catch (error) {
         console.error("Error in globalRequestLogger:", error);
-        await LogHelper.logError("globalRequestLogger()", error, LogSeverity.WARNING)
+        await LogHelper.logError("globalRequestLogger()", error, LogSeverity.WARNING);
     } finally {
         next();
     }

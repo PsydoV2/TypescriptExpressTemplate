@@ -1,9 +1,28 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { UserService } from "../services/user.service";
+import { HTTPCodes } from "../utils/HTTPCodes";
 
-/**
- * Controller for deleting a user account.
- * Delegates the request handling to the UserService.
- */
-export const deleteAccount = (req: Request, res: Response) =>
-  UserService.deleteAccount(req, res);
+
+export const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
+    const userID: string = req.userID || req.body.userID as string;
+
+    try {
+        const result = await UserService.deleteUser(userID);
+
+        return res.status(HTTPCodes.OK).json(result);
+    } catch (error: any) {
+        next(error);
+    }
+};
+
+export const getUser = async (req: Request, res: Response, next: NextFunction) => {
+    const userID: string = req.userID || req.query.userID as string;
+
+    try{
+        const result = await UserService.getUser(userID);
+
+        return res.status(HTTPCodes.OK).json(result);
+    }catch (error: any) {
+        next(error);
+    }
+}

@@ -1,0 +1,12 @@
+### Delete user
+DELETE http://localhost:88/api/user/deleteAccount
+Content-Type: application/json
+
+{
+  "userID": "1c1645cc-0789-11f1-96b2-02016e4234e7",
+  "reason": "test"
+}
+
+### Get User
+GET http://localhost:88/api/user/getUser?userID=81be741e-e390-47b0-acd7-e254416182d8&reason=test
+Content-Type: application/json

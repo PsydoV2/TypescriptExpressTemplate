@@ -11,10 +11,11 @@ import { json } from "body-parser";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
+import { notFoundHandler } from "./middlewares/notFoundHandler.middleware";
 import { EnvValidator } from "./utils/EnvValidator";
-import {globalRequestLogger} from "./middlewares/globalRequestLogger.middleware";
+import {globalRequestLogger} from "./middlewares/requestLogger.middleware";
 import {authRateLimit, globalRateLimit} from "./middlewares/rateLimiter.middleware";
+import {errorHandler} from "./middlewares/errorHandler.middleware";
 
 // Load environment variables
 dotenv.config();
@@ -60,7 +61,7 @@ const startServer = async () => {
 
     // Routes
     app.use("/api/auth/", authRateLimit, authRoutes);
-    app.use("/api/user/", authMiddleware, userRoutes);
+    app.use("/api/user/", userRoutes);
 
     // Fallbacks
     app.use(notFoundHandler);

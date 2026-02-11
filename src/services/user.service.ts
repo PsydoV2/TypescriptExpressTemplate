@@ -1,48 +1,45 @@
-import { Request, Response } from "express";
-import { DBConnectionPool } from "../config/DBConnectionPool";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { LogHelper, LogSeverity } from "../utils/LogHelper";
+import {UserRepository} from "../repositories/user.repository";
+import {DBConnectionPool} from "../config/DBConnectionPool";
+import {ApiError} from "../utils/ApiError";
+import {HTTPCodes} from "../utils/HTTPCodes";
 
 export const UserService = {
-  /**
-   * Deletes the currently authenticated user account.
-   * - Requires `req.userID` to be set by authentication middleware.
-   * - Either performs a hard delete or can be adapted to "soft delete".
-   */
-  async deleteAccount(req: Request, res: Response) {
-    const userID = (req as any).userID;
+  async deleteUser(userID: string) {
+    const connection = await DBConnectionPool.getConnection();
 
-    if (!userID) {
-      return res.status(HTTPCodes.BadRequest).json({
-        message: "Missing userID parameter.",
-      });
-    }
-
-    let connection;
-    try {
-      connection = await DBConnectionPool.getConnection();
+    try{
       await connection.beginTransaction();
 
-      // Example: Hard delete (adjust table/column names for your schema)
-      await connection.query("DELETE FROM Users WHERE id = ?", [userID]);
+      const user = await  UserRepository.findUserByID(userID, connection);
 
-      // Alternative: Soft delete (recommended for production apps)
-      // await connection.query("UPDATE Users SET isActive = 0 WHERE id = ?", [userID]);
+      if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
 
-      await connection.commit();
+      await UserRepository.deleteUserByID(userID, connection);
 
-      return res.status(HTTPCodes.OK).json({
-        message: "Account deleted successfully.",
-      });
+      connection.commit();
+
+      return {success: true};
     } catch (error) {
-      if (connection) await connection.rollback();
-      await LogHelper.logError("/deleteAccount", error, LogSeverity.CRITICAL);
-
-      return res.status(HTTPCodes.InternalServerError).json({
-        message: "An error occurred while deleting the account.",
-      });
+      await connection.rollback();
+      throw error;
     } finally {
-      if (connection) connection.release();
+      connection.release();
     }
   },
+
+  async getUser(userID: string) {
+    const connection = await DBConnectionPool.getConnection();
+
+    try{
+      const user = await UserRepository.findUserByID(userID, connection);
+
+      if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
+
+      return user;
+    } catch (error) {
+      throw error;
+    }finally {
+      connection.release();
+    }
+  }
 };

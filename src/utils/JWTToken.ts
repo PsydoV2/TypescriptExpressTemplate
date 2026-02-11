@@ -18,7 +18,7 @@ const getSecret = () => {
  * - Extend this depending on what you store in your tokens.
  */
 export interface AuthTokenPayload {
-  userID: number;
+  userID: string;
 }
 
 /**

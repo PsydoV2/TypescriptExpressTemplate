@@ -1,9 +1,11 @@
-import { Request, Response } from "express";
+import {Request, Response} from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { DBConnectionPool } from "../config/DBConnectionPool";
-import { LogHelper, LogSeverity } from "../utils/LogHelper";
-import { HTTPCodes } from "../utils/HTTPCodes";
+import {DBConnectionPool} from "../config/DBConnectionPool";
+import {LogHelper, LogSeverity} from "../utils/LogHelper";
+import {HTTPCodes} from "../utils/HTTPCodes";
+import {ApiError} from "../utils/ApiError";
+import {UserRepository} from "../repositories/user.repository";
 
 // Secret key used to sign JWT tokens
 const SECRET = process.env.SECRETKEYJWT!;
@@ -16,58 +18,51 @@ export const AuthService = {
    * - Hashes password and stores new user
    * - Returns JWT token and basic user info
    */
-  async register(req: Request, res: Response) {
-    const { userName, email, password } = req.body;
+  async registerUser(username: string, email: string, password: string) {
 
-    if (!userName || !email || !password) {
-      return res
-        .status(HTTPCodes.BadRequest)
-        .json({ message: "Missing parameters." });
+    if (!username || !email || !password) {
+      throw new ApiError(HTTPCodes.BadRequest, 'Missing required parameter');
     }
 
-    let connection;
+    const connection = await DBConnectionPool.getConnection();
+
     try {
-      connection = await DBConnectionPool.getConnection();
+      await connection.beginTransaction();
 
-      // Example: check if user already exists (adjust query for your schema)
-      const [existing] = await connection.query(
-        "SELECT id FROM Users WHERE email = ? OR userName = ?",
-        [email, userName]
-      );
+      // Check if user already exists
+      const userByEmail = await UserRepository.findUserByEmail(email, connection);
 
-      if ((existing as any[]).length > 0) {
-        return res
-          .status(HTTPCodes.Conflict)
-          .json({ message: "Email or username already in use." });
-      }
+      if(userByEmail) throw new ApiError(HTTPCodes.Conflict, "E-mail already exists");
+
+      const userByUsername = await UserRepository.findUserByUsername(username, connection);
+
+      if(userByUsername) throw new ApiError(HTTPCodes.Conflict, "Username already exists");
 
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Insert user into database (adjust fields for your schema)
-      const [insertResult]: any = await connection.query(
-        "INSERT INTO Users (userName, email, passwordHash) VALUES (?, ?, ?)",
-        [userName, email, hashedPassword]
-      );
+      // Insert user into database
+      await UserRepository.createNewUser(username, email, hashedPassword, connection);
 
-      const userId = insertResult.insertId;
+      const newUser = await UserRepository.findUserByUsername(username, connection);
+      const userID = newUser.userID;
 
       // Generate JWT
-      const token = jwt.sign({ userID: userId }, SECRET, { expiresIn: "1h" });
+      const token = jwt.sign({ userID: userID }, SECRET, { expiresIn: "100h" });
 
-      return res.status(HTTPCodes.OK).json({
+      await connection.commit();
+
+      return {
         token,
-        userID: userId,
-        userName,
+        userID,
+        username,
         email,
-      });
-    } catch (err) {
-      await LogHelper.logError("/register", err, LogSeverity.CRITICAL);
-      return res
-        .status(HTTPCodes.InternalServerError)
-        .json({ message: "Registration failed." });
+      };
+    } catch (error) {
+      await connection.rollback()
+      throw error;
     } finally {
-      if (connection) connection.release();
+      connection.release();
     }
   },
 
@@ -77,49 +72,45 @@ export const AuthService = {
    * - Checks username/email + password
    * - Returns JWT token and basic user info
    */
-  async login(req: Request, res: Response) {
-    const { emailOrUserName, password } = req.body;
+  async loginUser(emailOrUsername: string, password: string) {
 
-    if (!emailOrUserName || !password) {
-      return res
-        .status(HTTPCodes.BadRequest)
-        .json({ message: "Missing credentials." });
+    if (!emailOrUsername || !password) {
+      throw new ApiError(HTTPCodes.BadRequest, 'Missing required parameter');
     }
 
-    let connection;
+    const connection = await DBConnectionPool.getConnection();
+
     try {
-      connection = await DBConnectionPool.getConnection();
+      let user;
+      const userByEmail = await UserRepository.findUserByEmail(emailOrUsername, connection);
 
       // Find user by email or username
-      const [result] = await connection.query(
-        "SELECT * FROM Users WHERE userName = ? OR email = ?",
-        [emailOrUserName, emailOrUserName]
-      );
+      if (!userByEmail) {
+        const userByUsername = await UserRepository.findUserByUsername(emailOrUsername, connection);
 
-      const user = (result as any[])[0];
+        if(!userByUsername) throw new ApiError(HTTPCodes.NotFound, "User not found");
+        else user = userByUsername;
+      } else{
+        user = userByEmail;
+      }
 
-      if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-        return res
-          .status(HTTPCodes.Unauthorized)
-          .json({ message: "Invalid login." });
+      if(!user || !(await bcrypt.compare(password, user.passwordHash))){
+        throw new ApiError(HTTPCodes.Conflict, "Invalid login");
       }
 
       // Generate JWT
-      const token = jwt.sign({ userID: user.id }, SECRET, { expiresIn: "1h" });
+      const token = jwt.sign({ userID: user.userID }, SECRET, { expiresIn: "100h" });
 
-      return res.status(HTTPCodes.OK).json({
+      return {
         token,
-        userID: user.id,
-        userName: user.userName,
+        userID: user.userID,
+        userName: user.username,
         email: user.email,
-      });
-    } catch (err) {
-      await LogHelper.logError("/login", err, LogSeverity.CRITICAL);
-      return res
-        .status(HTTPCodes.InternalServerError)
-        .json({ message: "Login failed." });
+      };
+    } catch (error) {
+      throw error;
     } finally {
-      if (connection) connection.release();
+      connection.release();
     }
   },
 };

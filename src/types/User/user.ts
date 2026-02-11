@@ -4,8 +4,8 @@
  * - Extend or adapt fields depending on your project requirements.
  */
 export interface DTOUser {
-  id: number;
-  userName: string;
+  userID: number;
+  username: string;
   email: string;
   passwordHash: string;
   createdAt: Date;
