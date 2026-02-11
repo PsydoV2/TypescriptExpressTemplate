@@ -8,13 +8,13 @@ import http from "http";
 import fs from "fs";
 import { json } from "body-parser";
 
-import { globalRateLimiter } from "./middlewares/globalRateLimiter.middleware";
 import { authMiddleware } from "./middlewares/auth.middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import { EnvValidator } from "./utils/EnvValidator";
-import {LogHelper} from "./utils/LogHelper";
+import {globalRequestLogger} from "./middlewares/globalRequestLogger.middleware";
+import {authRateLimit, globalRateLimit} from "./middlewares/rateLimiter.middleware";
 
 // Load environment variables
 dotenv.config();
@@ -43,11 +43,7 @@ const startServer = async () => {
     app.use(json());
 
     // Basic request logger (can be replaced with a proper logger like Winston or Pino)
-    app.use(async (req, _res, next) => {
-        const payload = req.body ? JSON.stringify(req.body) : "";
-        await LogHelper.logRequest(req.originalUrl || req.url, payload);
-        next();
-    });
+    app.use(globalRequestLogger);
 
     // CORS configuration (customize per project)
     app.use(
@@ -60,19 +56,19 @@ const startServer = async () => {
     );
 
     // Global rate limiting
-    app.use(globalRateLimiter);
+    app.use(globalRateLimit);
 
     // Routes
-    app.use("/api", authRoutes);
-    app.use("/api", authMiddleware, userRoutes);
+    app.use("/api/auth/", authRateLimit, authRoutes);
+    app.use("/api/user/", authMiddleware, userRoutes);
 
     // Fallbacks
     app.use(notFoundHandler);
     app.use(errorHandler);
 
     // Ports
-    const HTTPPORT: number = Number(process.env.HTTPPORT) || 9080;
-    const HTTPSPORT: number = Number(process.env.HTTPSPORT) || 9444;
+    const HTTPPORT: number = parseInt(process.env.HTTPPORT || "9080", 10) ;
+    const HTTPSPORT: number = parseInt(process.env.HTTPSPORT || "9444", 10);
     const CERTKEYPATH: string = process.env.CERTKEYPATH || "";
     const CERTPATH: string = process.env.CERTPATH || "";
 

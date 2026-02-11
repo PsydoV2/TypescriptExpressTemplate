@@ -9,35 +9,34 @@ import { JWTToken } from "../utils/JWTToken";
  * - If valid → attaches userID from payload to the request object.
  * - If invalid or missing → responds with 401 Unauthorized.
  */
-export function authMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  // Log incoming request (optional, for debugging)
-  console.info("Incoming request:", req.method, req.url);
+export const authMiddleware = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): void | Response => {
+  const authHeader = req.headers.authorization;
+  const token = JWTToken.extractTokenFromHeader(authHeader);
 
-  // Extract token from Authorization header
-  const token = JWTToken.extractTokenFromHeader(req.headers.authorization);
+  // 1. Check if token exists
   if (!token) {
     return res.status(HTTPCodes.Unauthorized).json({
-      message: "Access denied! No token provided",
-      code: "NO_TOKEN",
+      message: "Authentication required",
+      code: "MISSING_TOKEN",
     });
   }
 
-  // Verify the token
+  // 2. Verify token
   const payload = JWTToken.verifyAuthToken(token);
-  if (!payload) {
+
+  if (!payload || !payload.userID) {
     return res.status(HTTPCodes.Unauthorized).json({
-      message: "Access denied! Invalid or expired token",
-      code: "INVALID_TOKEN",
+      message: "Session expired or invalid",
+      code: "UNAUTHORIZED",
     });
   }
 
-  // Attach userID to the request for further usage
-  (req as any).userID = payload.userID;
+  // 3. Attach userID (Dank d.ts Datei jetzt typsicher ohne 'as any')
+  req.userID = payload.userID;
 
-  // Continue to the next middleware or route handler
-  next();
-}
+  return next();
+};
