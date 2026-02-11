@@ -1,186 +1,139 @@
-# Express + TypeScript Backend Template
+# Express + TypeScript Backend Template v2.0
 
-![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
-![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-jest-orange)
-
-A lean, production-minded backend template with **Express**, **TypeScript**, and **MySQL**. It ships with authentication, middleware, environment validation, structured file logging, and a Jest test setup.
+A professional, scalable backend template built with **Express** and **TypeScript**. This project implements a strict **Service-Repository pattern**, central error handling, and a robust logging system with database integration.
 
 ---
 
-## 📌 Highlights
+## 📂 Project Structure
 
-- ✅ TypeScript-first codebase
-- ✅ Modular Express routes/controllers/services
-- ✅ MySQL2 connection pool
-- ✅ JWT authentication (login/register)
-- ✅ Environment validation before startup
-- ✅ File logging per severity (info, request, warning, error, critical)
-- ✅ Optional DB logging for errors
-- ✅ HTTPS support via certificate paths in `.env`
-- ✅ Jest + ts-jest unit tests
-
----
-
-## 📂 Project Structure (Excerpt)
-
-```
+```text
 src/
-├── config/            # Configuration (DB pool, etc.)
-│   └── DBConnectionPool.ts
-├── controllers/       # Controllers
-├── middlewares/       # Middleware (auth, error, rate limiters)
-├── routes/            # Routes
-├── services/          # Business logic
-├── utils/             # Utilities (EnvValidator, JWT, Logger, etc.)
-│   ├── ApiError.ts
-│   ├── EnvValidator.ts
-│   ├── HTTPCodes.ts
-│   ├── JWTToken.ts
-│   └── LogHelper.ts
-└── index.ts           # Entry point
-
+├── config/             # DB Pool & configuration
+├── controllers/        # Express route handlers
+├── middlewares/        # Auth, Error, Rate Limiting, Logging
+├── repositories/       # Data Access Layer (SQL queries)
+├── routes/             # API Route definitions
+├── services/           # Business logic & Transactions
+├── types/              # TypeScript interfaces/DTOs
+├── utils/              # Helpers (ApiError, LogHelper, JWT)
+└── index.ts            # Entry point
 tests/
-└── unit/
-    └── utils/
+├── http/               # .http files for REST Client testing
+└── unit/               # Jest unit tests for utilities
+
 ```
 
 ---
 
-## ✅ Requirements
+## 🗄️ Database Schema
 
-- Node.js 18+ (recommended)
-- npm
-- MySQL (if you want DB logging and database-backed routes)
+To get the template running, ensure your MySQL database has the following tables:
+
+### Users Table
+
+```sql
+CREATE TABLE Users (
+    userID VARCHAR(255) PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    passwordHash VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    isActive BOOLEAN DEFAULT TRUE
+);
+
+```
+
+### ErrorLog Table
+
+```sql
+CREATE TABLE ErrorLog (
+    errorID INT AUTO_INCREMENT PRIMARY KEY,
+    route VARCHAR(255),
+    error TEXT,
+    level VARCHAR(50),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+```
 
 ---
 
-## 📦 Installation
+## 🛠️ Installation & Setup
 
+1. **Install Dependencies**:
 ```bash
 npm install
+
 ```
 
----
 
-## 🔧 Environment Setup
-
-Create a `.env` file in the project root:
-
+2. **Configure Environment**:
+   Create a `.env` file (see `EnvValidator` for required keys):
 ```env
 DBHOST=localhost
 DBPORT=3306
-DBNAME=mydatabase
-DBUSER=myuser
-DBPASSWORD=mypassword
-
-SECRETKEYJWT=supersecretkey
-
+DBNAME=your_db
+DBUSER=root
+DBPASSWORD=your_pass
+SECRETKEYJWT=your_secret
 HTTPPORT=9080
 HTTPSPORT=9444
+CERTKEYPATH=./certs/key.pem
+CERTPATH=./certs/cert.pem
 
-CERTKEYPATH=./key.key
-CERTPATH=./fullchain.pem
 ```
 
-> The `EnvValidator` aborts startup with a **CRITICAL** log if required variables are missing.
+
 
 ---
 
-## ▶️ Usage
+## 🚦 Available Scripts
 
-### Development (HTTP, auto-reload)
-
-```bash
-npm run dev
-```
-
-### Local build + run (HTTP)
-
-```bash
-npm run start:local
-```
-
-### Test / Production (HTTPS)
-
-```bash
-npm run start:test
-npm run start:prod
-```
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Development mode with hot-reload (HTTP). |
+| `npm run start:local` | Builds and starts in local mode (HTTP). |
+| `npm run start:prod` | Builds and starts in production mode (HTTPS). |
+| `npm test` | Runs Jest unit tests. |
 
 ---
 
-## 🔐 Authentication (Overview)
+## 🧪 Testing
 
-- **Register**: `POST /api/register`
-- **Login**: `POST /api/login`
-- Use token: `Authorization: Bearer <token>`
-- Protected route example: `POST /api/deleteAccount`
+The template includes two types of testing strategies:
 
----
+### 1. Unit Tests (Jest)
 
-## 📄 Logging
-
-**File logs** are written to `logs/`:
-
-- `info-YYYY-MM-DD.log`
-- `request-YYYY-MM-DD.log`
-- `warning-YYYY-MM-DD.log`
-- `error-YYYY-MM-DD.log`
-- `critical-YYYY-MM-DD.log`
-
-**DB logging:**
-- Only for `warning/error/critical`.
-- If DB is not configured or unreachable, logging falls back to files only.
-
----
-
-## 🧪 Testing (Jest)
+Located in `tests/unit/utils`, these tests validate core utility logic like `JWTToken`, `ApiError`, and `EnvValidator`.
 
 ```bash
 npm test
+
 ```
 
-Optional watch mode:
+### 2. HTTP Request Tests
 
-```bash
-npm run test:watch
-```
-
-Tests live under `tests/` and use `ts-jest`.
+Located in `tests/http`, these files (`auth.test.http`, `user.test.http`) allow you to test API endpoints directly within VS Code using the **REST Client** extension.
 
 ---
 
-## 📑 Scripts (Excerpt)
+## 🛡️ Architecture Highlights
 
-- `npm run dev` → Dev mode (HTTP, autoreload)
-- `npm run build` → TypeScript build
-- `npm run start:local` → Build + HTTP start
-- `npm run start:test` → Build + HTTPS start
-- `npm run start:prod` → Build + HTTPS start
-- `npm test` → Jest tests
+* **Transaction Management**: Handled within the **Service Layer** to ensure atomicity (all-or-nothing) for operations like user registration or deletion.
+* **Repository Pattern**: Repositories accept an optional `connection` parameter to participate in transactions initiated by Services.
+* **Global Error Handling**: Centralized middleware catches `ApiError` instances, logs them to both files and the database, and returns clean JSON responses.
+* **Security**:
+* **Rate Limiting**: Brute-force protection via `rate-limiter-flexible`.
+* **Headers**: Security headers managed by `Helmet`.
+* **CORS**: Fully configurable for frontend integration.
 
----
 
-## 🛠️ Tech Stack
-
-- Express
-- TypeScript
-- MySQL2
-- jsonwebtoken
-- bcrypt
-- helmet
-- cors
-- dotenv
-- jest + ts-jest
 
 ---
 
-## 🧰 Troubleshooting
+## 📝 Logging System
 
-**Env variables are reported missing**
-- Ensure `.env` is in the project root and the process is started from that folder.
+The `LogHelper` automatically routes logs based on severity:
 
-**HTTPS fails to start**
-- Verify `CERTKEYPATH` and `CERTPATH` exist and are readable.
+* **File System**: All logs (`INFO`, `REQUEST`, `WARNING`, `ERROR`, `CRITICAL`) are saved as daily rotating `.log` files.
+* **Database**: `WARNING`, `ERROR`, and `CRITICAL` severities are additionally persisted in the `ErrorLog` table.

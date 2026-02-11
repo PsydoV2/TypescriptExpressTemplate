@@ -1,4 +1,3 @@
-// index.ts – Entry point of the API (Express + TypeScript)
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -6,7 +5,6 @@ import helmet from "helmet";
 import https from "https";
 import http from "http";
 import fs from "fs";
-import { json } from "body-parser";
 
 import { authMiddleware } from "./middlewares/auth.middleware";
 import authRoutes from "./routes/auth.routes";
@@ -41,7 +39,7 @@ const startServer = async () => {
     app.use(helmet());
 
     // JSON body parser
-    app.use(json());
+    app.use(express.json());
 
     // Basic request logger (can be replaced with a proper logger like Winston or Pino)
     app.use(globalRequestLogger);
@@ -61,7 +59,7 @@ const startServer = async () => {
 
     // Routes
     app.use("/api/auth/", authRateLimit, authRoutes);
-    app.use("/api/user/", userRoutes);
+    app.use("/api/user/", authMiddleware, userRoutes);
 
     // Fallbacks
     app.use(notFoundHandler);
