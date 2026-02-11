@@ -1,72 +1,64 @@
-# 🚀 Express + TypeScript Backend Template
+# Express + TypeScript Backend Template
 
-A generic backend starter template built with **Express**, **TypeScript**, and **MySQL**.
-Includes authentication, user management, middleware, environment validation, logging, and security best practices.
+![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Tests](https://img.shields.io/badge/tests-jest-orange)
+
+A lean, production-minded backend template with **Express**, **TypeScript**, and **MySQL**. It ships with authentication, middleware, environment validation, structured file logging, and a Jest test setup.
 
 ---
 
-## 📂 Project Structure
+## 📌 Highlights
+
+- ✅ TypeScript-first codebase
+- ✅ Modular Express routes/controllers/services
+- ✅ MySQL2 connection pool
+- ✅ JWT authentication (login/register)
+- ✅ Environment validation before startup
+- ✅ File logging per severity (info, request, warning, error, critical)
+- ✅ Optional DB logging for errors
+- ✅ HTTPS support via certificate paths in `.env`
+- ✅ Jest + ts-jest unit tests
+
+---
+
+## 📂 Project Structure (Excerpt)
 
 ```
 src/
-├── config/            # Configuration files (DB connection, etc.)
+├── config/            # Configuration (DB pool, etc.)
 │   └── DBConnectionPool.ts
-├── controllers/       # Route controllers (handle HTTP requests)
-│   ├── auth.controller.ts
-│   └── user.controller.ts
-├── middlewares/       # Express middlewares (auth, error, rate limiters)
-│   ├── auth.middleware.ts
-│   ├── error.middleware.ts
-│   ├── globalRateLimiter.middleware.ts
-│   └── rateLimiter.middleware.ts
-├── routes/            # Route definitions
-│   ├── auth.routes.ts
-│   └── user.routes.ts
-├── services/          # Business logic (AuthService, UserService, etc.)
-│   ├── auth.service.ts
-│   └── user.service.ts
-├── types/             # TypeScript types & DTOs
-│   └── user.ts
-├── utils/             # Utilities (EnvValidator, ApiError, JWT, Logger, etc.)
+├── controllers/       # Controllers
+├── middlewares/       # Middleware (auth, error, rate limiters)
+├── routes/            # Routes
+├── services/          # Business logic
+├── utils/             # Utilities (EnvValidator, JWT, Logger, etc.)
 │   ├── ApiError.ts
 │   ├── EnvValidator.ts
 │   ├── HTTPCodes.ts
 │   ├── JWTToken.ts
 │   └── LogHelper.ts
-└── index.ts           # Main entry point
+└── index.ts           # Entry point
+
+tests/
+└── unit/
+    └── utils/
 ```
 
 ---
 
-## ⚙️ Features
+## ✅ Requirements
 
-- ✅ **TypeScript** for type safety
-- ✅ **Express** server with modular routes and controllers
-- ✅ **MySQL2** connection pool
-- ✅ **Authentication (JWT)** with `AuthService` & middleware
-- ✅ **User service** with example `deleteAccount` endpoint
-- ✅ **Middlewares**:
-
-  - Authentication (`auth.middleware.ts`)
-  - Error handling (`error.middleware.ts`)
-  - Global rate limiter (`globalRateLimiter.middleware.ts`)
-  - Route-specific limiter (`rateLimiter.middleware.ts`)
-
-- ✅ **Security**: `helmet`, `cors`, HTTPS support
-- ✅ **Environment validation** with `EnvValidator`
-- ✅ **Logging** (file-based + optional DB logging with `LogHelper`)
-- ✅ **Scalable structure** for future features
+- Node.js 18+ (recommended)
+- npm
+- MySQL (if you want DB logging and database-backed routes)
 
 ---
 
 ## 📦 Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/express-ts-backend-template.git
-cd express-ts-backend-template
-
-# Install dependencies
 npm install
 ```
 
@@ -74,7 +66,7 @@ npm install
 
 ## 🔧 Environment Setup
 
-Create a `.env` file in the project root (see `.env.example`):
+Create a `.env` file in the project root:
 
 ```env
 DBHOST=localhost
@@ -87,9 +79,12 @@ SECRETKEYJWT=supersecretkey
 
 HTTPPORT=9080
 HTTPSPORT=9444
+
+CERTKEYPATH=./key.key
+CERTPATH=./fullchain.pem
 ```
 
-> The **EnvValidator** ensures that all required variables are set before the server starts.
+> The `EnvValidator` aborts startup with a **CRITICAL** log if required variables are missing.
 
 ---
 
@@ -116,69 +111,76 @@ npm run start:prod
 
 ---
 
-## 🔐 Authentication Flow
+## 🔐 Authentication (Overview)
 
 - **Register**: `POST /api/register`
 - **Login**: `POST /api/login`
-- Returns a **JWT token** (valid for 1h)
-- Use in requests via `Authorization: Bearer <token>`
-- Example protected route:
-
-  - `POST /api/deleteAccount` → requires valid token
+- Use token: `Authorization: Bearer <token>`
+- Protected route example: `POST /api/deleteAccount`
 
 ---
 
 ## 📄 Logging
 
-- Info logs → stored in `/logs/info-YYYY-MM-DD.log`
-- Errors → stored in DB table `ErrorLog` (customize for your schema)
-- Fallback: errors also logged to console
+**File logs** are written to `logs/`:
+
+- `info-YYYY-MM-DD.log`
+- `request-YYYY-MM-DD.log`
+- `warning-YYYY-MM-DD.log`
+- `error-YYYY-MM-DD.log`
+- `critical-YYYY-MM-DD.log`
+
+**DB logging:**
+- Only for `warning/error/critical`.
+- If DB is not configured or unreachable, logging falls back to files only.
 
 ---
 
-## 🚦 Rate Limiting
+## 🧪 Testing (Jest)
 
-- **Global limiter** → 100 requests/minute per IP
-- **Auth routes limiter** → 5 attempts per 5 minutes, blocks for 15 minutes after exceeding
+```bash
+npm test
+```
 
----
+Optional watch mode:
 
-## 📑 Available Scripts
+```bash
+npm run test:watch
+```
 
-- `npm run dev` → Start in dev mode (auto-restart, HTTP only)
-- `npm run build` → Compile TypeScript to `dist/`
-- `npm run start` → Run built server
-- `npm run start:local` → Build + run locally via HTTP
-- `npm run start:test` → Build + run in production mode (HTTPS)
-- `npm run start:prod` → Same as above (for live deployment)
+Tests live under `tests/` and use `ts-jest`.
 
 ---
 
-## 🛠️ Technologies Used
+## 📑 Scripts (Excerpt)
 
-- [Express](https://expressjs.com/) – Web framework
-- [TypeScript](https://www.typescriptlang.org/) – Typed JavaScript
-- [MySQL2](https://www.npmjs.com/package/mysql2) – Database driver
-- [jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken) – JWT authentication
-- [bcrypt](https://www.npmjs.com/package/bcrypt) – Password hashing
-- [helmet](https://www.npmjs.com/package/helmet) – Security headers
-- [cors](https://www.npmjs.com/package/cors) – CORS configuration
-- [express-rate-limit](https://www.npmjs.com/package/express-rate-limit) & [rate-limiter-flexible](https://www.npmjs.com/package/rate-limiter-flexible) – Request limiting
-- [dotenv](https://www.npmjs.com/package/dotenv) – Env var management
+- `npm run dev` → Dev mode (HTTP, autoreload)
+- `npm run build` → TypeScript build
+- `npm run start:local` → Build + HTTP start
+- `npm run start:test` → Build + HTTPS start
+- `npm run start:prod` → Build + HTTPS start
+- `npm test` → Jest tests
 
 ---
 
-## 🧑‍💻 How to Extend
+## 🛠️ Tech Stack
 
-- Add new routes in `src/routes/` and connect them in `index.ts`
-- Add controllers to handle incoming HTTP requests
-- Add services to implement business logic
-- Add new DTOs in `src/types/` for structured data handling
-- Extend `AuthTokenPayload` in `JWTToken.ts` if your JWT should contain more fields
+- Express
+- TypeScript
+- MySQL2
+- jsonwebtoken
+- bcrypt
+- helmet
+- cors
+- dotenv
+- jest + ts-jest
 
 ---
 
-## 📜 License
+## 🧰 Troubleshooting
 
-This template is licensed under the **MIT License**.
-Feel free to fork and adapt for your own projects.
+**Env variables are reported missing**
+- Ensure `.env` is in the project root and the process is started from that folder.
+
+**HTTPS fails to start**
+- Verify `CERTKEYPATH` and `CERTPATH` exist and are readable.

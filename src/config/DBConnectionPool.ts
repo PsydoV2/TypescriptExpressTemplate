@@ -7,10 +7,8 @@ dotenv.config();
 // Extract required database configuration from environment variables
 const { DBHOST, DBPORT, DBNAME, DBUSER, DBPASSWORD } = process.env;
 
-// Validate that all necessary variables are set
-if (!DBHOST || !DBPORT || !DBNAME || !DBUSER || !DBPASSWORD) {
-  throw new Error("❌ Missing database configuration values in .env");
-}
+// Export a simple flag so callers can skip DB work if not configured
+export const isDBConfigured = () => !!(DBHOST && DBPORT && DBNAME && DBUSER && DBPASSWORD);
 
 // Create a reusable MySQL connection pool
 export const DBConnectionPool = mysql.createPool({
@@ -18,7 +16,7 @@ export const DBConnectionPool = mysql.createPool({
   user: DBUSER,
   password: DBPASSWORD,
   database: DBNAME,
-  port: parseInt(DBPORT, 10),
+  port: parseInt(DBPORT || "0", 10),
   waitForConnections: true, // Queue connection requests if all are in use
   connectionLimit: 20, // Maximum number of connections in the pool
   queueLimit: 50, // Max number of queued connection requests
