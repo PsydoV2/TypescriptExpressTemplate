@@ -20,7 +20,7 @@ export const UserService = {
 
       return {success: true};
     } catch (error) {
-      await connection.rollback();
+      if (connection)await connection.rollback();
       throw error;
     } finally {
       connection.release();
@@ -28,18 +28,10 @@ export const UserService = {
   },
 
   async getUser(userID: string) {
-    const connection = await DBConnectionPool.getConnection();
+    const user = await UserRepository.findUserByID(userID);
 
-    try{
-      const user = await UserRepository.findUserByID(userID, connection);
+    if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
 
-      if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
-
-      return user;
-    } catch (error) {
-      throw error;
-    }finally {
-      connection.release();
-    }
+    return user;
   }
 };

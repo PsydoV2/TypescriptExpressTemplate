@@ -1,12 +1,11 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import {DBConnectionPool} from "../config/DBConnectionPool";
 import {HTTPCodes} from "../utils/HTTPCodes";
 import {ApiError} from "../utils/ApiError";
 import {UserRepository} from "../repositories/user.repository";
+import {AuthRepository} from "../repositories/auth.repository";
+import {DTOUser} from "../types/User/user";
 
-// Secret key used to sign JWT tokens
-const SECRET = process.env.SECRETKEYJWT!;
 
 export const AuthService = {
   /**
@@ -42,22 +41,21 @@ export const AuthService = {
       // Insert user into database
       await UserRepository.createNewUser(username, email, hashedPassword, connection);
 
-      const newUser = await UserRepository.findUserByUsername(username, connection);
-      const userID = newUser.userID;
+      const newUser: DTOUser = await UserRepository.findUserByUsername(username, connection);
 
       // Generate JWT
-      const token = jwt.sign({ userID: userID }, SECRET, { expiresIn: "100h" });
+      const token = AuthRepository.generateJWT(newUser.userID, "100h");
 
       await connection.commit();
 
       return {
         token,
-        userID,
+        userID: newUser.userID,
         username,
         email,
       };
     } catch (error) {
-      await connection.rollback()
+      if (connection) await connection.rollback()
       throw error;
     } finally {
       connection.release();
@@ -71,44 +69,29 @@ export const AuthService = {
    * - Returns JWT token and basic user info
    */
   async loginUser(emailOrUsername: string, password: string) {
-
     if (!emailOrUsername || !password) {
       throw new ApiError(HTTPCodes.BadRequest, 'Missing required parameter');
     }
 
-    const connection = await DBConnectionPool.getConnection();
+    // Find user by email or username
+    const user: DTOUser = (await UserRepository.findUserByEmail(emailOrUsername)) ||
+        (await UserRepository.findUserByUsername(emailOrUsername));
 
-    try {
-      let user;
-      const userByEmail = await UserRepository.findUserByEmail(emailOrUsername, connection);
+    const invalidError = new ApiError(HTTPCodes.Unauthorized, "Invalid email/username or password");
 
-      // Find user by email or username
-      if (!userByEmail) {
-        const userByUsername = await UserRepository.findUserByUsername(emailOrUsername, connection);
+    if (!user) throw invalidError;
 
-        if(!userByUsername) throw new ApiError(HTTPCodes.NotFound, "User not found");
-        else user = userByUsername;
-      } else{
-        user = userByEmail;
-      }
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) throw invalidError;
 
-      if(!user || !(await bcrypt.compare(password, user.passwordHash))){
-        throw new ApiError(HTTPCodes.Conflict, "Invalid login");
-      }
+    // Generate JWT
+    const token = AuthRepository.generateJWT(user.userID, "100h");
 
-      // Generate JWT
-      const token = jwt.sign({ userID: user.userID }, SECRET, { expiresIn: "100h" });
-
-      return {
-        token,
-        userID: user.userID,
-        userName: user.username,
-        email: user.email,
-      };
-    } catch (error) {
-      throw error;
-    } finally {
-      connection.release();
-    }
-  },
+    return {
+      token,
+      userID: user.userID,
+      userName: user.username,
+      email: user.email,
+    };
+  }
 };
