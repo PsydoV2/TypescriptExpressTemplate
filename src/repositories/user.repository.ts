@@ -14,7 +14,7 @@ export const UserRepository = {
     },
 
     async findUserByEmail(email: string, connection?: any): Promise<DTOUser> {
-        const db = connection || await DBConnectionPool.getConnection();
+        const db = connection || DBConnectionPool;
 
         const [rows]: any = await db.query(
             "SELECT * FROM Users WHERE email = ?",
