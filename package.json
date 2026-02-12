@@ -11,8 +11,8 @@
     "start:local": "npm run build && cross-env NODE_ENV=localhost node dist/index.js",
     "start:test": "npm run build && cross-env NODE_ENV=prod node dist/index.js",
     "start:prod": "npm run build && cross-env NODE_ENV=dev node dist/index.js",
-    "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test": "jest --detectOpenHandles",
+    "test:watch": "jest --watchAll --detectOpenHandles"
   },
   "author": "Your Name",
   "license": "ISC",
