@@ -25,7 +25,8 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.3",
-    "rate-limiter-flexible": "^7.0.0"
+    "rate-limiter-flexible": "^7.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",

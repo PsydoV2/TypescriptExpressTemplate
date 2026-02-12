@@ -4,7 +4,7 @@ import { HTTPCodes } from "../utils/HTTPCodes";
 
 
 export const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
-    const userID: string = req.userID || req.body.userID as string;
+    const userID: string = req.userID as string;
 
     try {
         const result = await UserService.deleteUser(userID);
@@ -16,7 +16,7 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
 };
 
 export const getUser = async (req: Request, res: Response, next: NextFunction) => {
-    const userID: string = req.userID || req.query.userID as string;
+    const userID: string = req.userID as string;
 
     try{
         const result = await UserService.getUser(userID);

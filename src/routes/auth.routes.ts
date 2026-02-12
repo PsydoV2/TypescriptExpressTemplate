@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { registerUser, loginUser } from "../controllers/auth.controller";
+import { validate } from "../middlewares/validate.middleware";
+import { loginSchema, registerSchema } from "../schemas/auth.schema";
 
 const router = Router();
 
@@ -7,11 +9,8 @@ const router = Router();
  * Authentication routes
  * - /register → User registration (with rate limiting)
  * - /login → User login (with rate limiting)
- * - /authTest → Simple test route to verify router is working
  */
-router.post("/register", registerUser);
-router.post("/login", loginUser);
-
-router.get("/authTest", (_req, res) => res.send("Auth routes working!"));
+router.post("/register", validate(registerSchema), registerUser);
+router.post("/login", validate(loginSchema), loginUser);
 
 export default router;

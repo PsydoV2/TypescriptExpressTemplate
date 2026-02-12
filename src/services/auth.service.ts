@@ -17,10 +17,6 @@ export const AuthService = {
    */
   async registerUser(username: string, email: string, password: string) {
 
-    if (!username || !email || !password) {
-      throw new ApiError(HTTPCodes.BadRequest, 'Missing required parameter');
-    }
-
     const connection = await DBConnectionPool.getConnection();
 
     try {
@@ -69,9 +65,6 @@ export const AuthService = {
    * - Returns JWT token and basic user info
    */
   async loginUser(emailOrUsername: string, password: string) {
-    if (!emailOrUsername || !password) {
-      throw new ApiError(HTTPCodes.BadRequest, 'Missing required parameter');
-    }
 
     // Find user by email or username
     const user: DTOUser = (await UserRepository.findUserByEmail(emailOrUsername)) ||
