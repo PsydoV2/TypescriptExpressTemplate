@@ -1,0 +1,4 @@
+### GET request to health check
+GET localhost:88/api/system/health
+
+###

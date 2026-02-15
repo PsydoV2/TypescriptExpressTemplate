@@ -14,6 +14,7 @@ import { EnvValidator } from "./utils/EnvValidator";
 import {globalRequestLogger} from "./middlewares/requestLogger.middleware";
 import {authRateLimit, globalRateLimit} from "./middlewares/rateLimiter.middleware";
 import {errorHandler} from "./middlewares/errorHandler.middleware";
+import systemRoutes from "./routes/system.routes";
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +59,7 @@ const startServer = async () => {
     app.use(globalRateLimit);
 
     // Routes
+    app.use("/api/system/", systemRoutes);
     app.use("/api/auth/", authRateLimit, authRoutes);
     app.use("/api/user/", authMiddleware, userRoutes);
 
