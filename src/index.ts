@@ -14,7 +14,6 @@ import { EnvValidator } from "./utils/EnvValidator";
 import {globalRequestLogger} from "./middlewares/requestLogger.middleware";
 import {authRateLimit, globalRateLimit} from "./middlewares/rateLimiter.middleware";
 import {errorHandler} from "./middlewares/errorHandler.middleware";
-import { setupSwagger } from "./config/swagger";
 
 // Load environment variables
 dotenv.config();
@@ -41,9 +40,6 @@ const startServer = async () => {
 
     // JSON body parser
     app.use(express.json());
-
-    // Swagger UI
-    setupSwagger(app);
 
     // Basic request logger (can be replaced with a proper logger like Winston or Pino)
     app.use(globalRequestLogger);

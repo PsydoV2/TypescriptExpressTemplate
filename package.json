@@ -26,10 +26,7 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.3",
     "rate-limiter-flexible": "^7.0.0",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
-    "zod": "^4.3.6",
-    "zod-openapi": "^5.4.6"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
@@ -43,7 +40,6 @@
     "@types/node": "20.14.12",
     "@types/nodemailer": "^6.4.17",
     "@types/redis": "^4.0.10",
-    "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
