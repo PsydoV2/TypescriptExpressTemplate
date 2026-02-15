@@ -1,6 +1,7 @@
 import { AuthService } from "../../../src/services/auth.service";
 import { UserRepository } from "../../../src/repositories/user.repository";
 import { ApiError } from "../../../src/utils/ApiError";
+import {DBConnectionPool} from "../../../src/config/DBConnectionPool";
 
 jest.mock("../../../src/repositories/user.repository");
 jest.mock("../../../src/config/DBConnectionPool", () => ({
@@ -31,4 +32,27 @@ describe("AuthService - registerUser", () => {
             expect(error.message).toBe("E-mail already exists");
         }
     });
+});
+
+it("should rollback transaction if repository fails during registration", async () => {
+    const mockConn = {
+        beginTransaction: jest.fn(),
+        commit: jest.fn(),
+        rollback: jest.fn(),
+        release: jest.fn(),
+        query: jest.fn()
+    };
+
+    // Setup: Connection wird erfolgreich geholt, aber der Insert schlägt fehl
+    const { DBConnectionPool } = require("../../../src/config/DBConnectionPool");
+    (DBConnectionPool.getConnection as jest.Mock).mockResolvedValue(mockConn);
+    (UserRepository.findUserByEmail as jest.Mock).mockResolvedValue(null);
+    (UserRepository.createNewUser as jest.Mock).mockRejectedValue(new Error("SQL Error"));
+
+    await expect(AuthService.registerUser("test", "test@test.com", "Pass123!"))
+        .rejects.toThrow("SQL Error");
+
+    // WICHTIG: Prüfen, ob Rollback und Release aufgerufen wurden
+    expect(mockConn.rollback).toHaveBeenCalled();
+    expect(mockConn.release).toHaveBeenCalled();
 });
