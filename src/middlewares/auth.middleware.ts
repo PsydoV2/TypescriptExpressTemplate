@@ -10,9 +10,9 @@ import { JWTToken } from "../utils/JWTToken";
  * - If invalid or missing → responds with 401 Unauthorized.
  */
 export const authMiddleware = (
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction,
 ): void | Response => {
   const authHeader = req.headers.authorization;
   const token = JWTToken.extractTokenFromHeader(authHeader);
@@ -35,7 +35,7 @@ export const authMiddleware = (
     });
   }
 
-  // 3. Attach userID (Dank d.ts Datei jetzt typsicher ohne 'as any')
+  // 3. Attach userID
   req.userID = payload.userID;
 
   return next();
