@@ -1,5 +1,5 @@
 ### Register User
-POST http://localhost:88/api/auth/register
+POST http://localhost:88/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -10,7 +10,7 @@ Content-Type: application/json
 
 
 ### Login User
-POST http://localhost:88/api/auth/login
+POST http://localhost:88/api/v1/auth/login
 Content-Type: application/json
 
 {

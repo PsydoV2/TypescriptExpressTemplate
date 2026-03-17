@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import {SignOptions} from "jsonwebtoken";
 import {DBConnectionPool} from "../config/DBConnectionPool";
 import {HTTPCodes} from "../utils/HTTPCodes";
 import {ApiError} from "../utils/ApiError";
@@ -40,7 +41,8 @@ export const AuthService = {
       const newUser: DTOUser = await UserRepository.findUserByUsername(username, connection);
 
       // Generate JWT
-      const token = AuthRepository.generateJWT(newUser.userID, "100h");
+      const jwtExpiry = (process.env.JWT_EXPIRES_IN || "100h") as SignOptions["expiresIn"];
+      const token = AuthRepository.generateJWT(newUser.userID, jwtExpiry);
 
       await connection.commit();
 
@@ -78,12 +80,13 @@ export const AuthService = {
     if (!isPasswordValid) throw invalidError;
 
     // Generate JWT
-    const token = AuthRepository.generateJWT(user.userID, "100h");
+    const jwtExpiry = (process.env.JWT_EXPIRES_IN || "100h") as SignOptions["expiresIn"];
+    const token = AuthRepository.generateJWT(user.userID, jwtExpiry);
 
     return {
       token,
       userID: user.userID,
-      userName: user.username,
+      username: user.username,
       email: user.email,
     };
   }

@@ -26,9 +26,9 @@ describe("JWTToken.verifyAuthToken", () => {
   });
 
   it("returns payload for a valid token", () => {
-    const signed = jwt.sign({ userID: 123 }, secret, { expiresIn: "1h" });
+    const signed = jwt.sign({ userID: "550e8400-e29b-41d4-a716-446655440000" }, secret, { expiresIn: "1h" });
     const payload = JWTToken.verifyAuthToken(signed);
-    expect(payload?.userID).toBe(123);
+    expect(payload?.userID).toBe("550e8400-e29b-41d4-a716-446655440000");
   });
 
   it("returns undefined for an invalid token", () => {

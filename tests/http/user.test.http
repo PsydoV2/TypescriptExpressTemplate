@@ -1,5 +1,5 @@
 ### Delete user
-DELETE http://localhost:88/api/user/deleteAccount
+DELETE http://localhost:88/api/v1/user/deleteAccount
 Content-Type: application/json
 
 {
@@ -8,5 +8,5 @@ Content-Type: application/json
 }
 
 ### Get User
-GET http://localhost:88/api/user/getUser?userID=81be741e-e390-47b0-acd7-e254416182d8&reason=test
+GET http://localhost:88/api/v1/user/getUser?userID=81be741e-e390-47b0-acd7-e254416182d8&reason=test
 Content-Type: application/json

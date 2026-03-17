@@ -1,4 +1,5 @@
 import { DBConnectionPool, isDBConfigured } from "../config/DBConnectionPool";
+import { getRequestId } from "./RequestContext";
 import fs from "fs/promises";
 import path from "path";
 
@@ -43,7 +44,9 @@ export class LogHelper {
   }
 
   private static logLineBuilder(route: string, message: string, severity: LogSeverity = LogSeverity.INFO) {
-    return `${this.getTodayDateTime()} | ${severity.toUpperCase()} | ${route} | ` +
+    const requestId = getRequestId();
+    const requestIdPart = requestId ? ` | ${requestId}` : "";
+    return `${this.getTodayDateTime()} | ${severity.toUpperCase()}${requestIdPart} | ${route} | ` +
            `${String(message).replace(/\s+/g, " ").trim()}\n`;
   }
 

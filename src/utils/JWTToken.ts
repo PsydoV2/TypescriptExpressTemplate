@@ -54,7 +54,7 @@ export class JWTToken {
         typeof decoded === "object" &&
         decoded !== null &&
         "userID" in decoded &&
-        typeof (decoded as any).userID === "number"
+        typeof (decoded as any).userID === "string"
       ) {
         return decoded as AuthTokenPayload;
       }
