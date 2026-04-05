@@ -1,17 +1,21 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import {LogHelper, LogSeverity} from "./LogHelper";
+import { LogHelper, LogSeverity } from "../helper/LogHelper";
 
 dotenv.config();
 
-const getSecret = () => {
+export const getSecret = () => {
   const secret = process.env.SECRETKEYJWT || "";
   if (!secret) {
-    void LogHelper.logError("ENV", "❌ SECRETKEYJWT missing in .env", LogSeverity.CRITICAL);
+    void LogHelper.logError(
+      "ENV",
+      "❌ SECRETKEYJWT missing in .env",
+      LogSeverity.CRITICAL,
+    );
     throw new Error("❌ SECRETKEYJWT missing in .env");
   }
   return secret;
-}
+};
 
 /**
  * JWT payload interface.
@@ -32,7 +36,7 @@ export class JWTToken {
    * Expects header format: "Bearer <token>"
    */
   static extractTokenFromHeader(
-    header: string | undefined
+    header: string | undefined,
   ): string | undefined {
     if (!header) return undefined;
 

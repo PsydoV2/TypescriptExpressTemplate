@@ -1,6 +1,6 @@
 {
   "name": "express-ts-backend-template",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A generic backend template using Express and TypeScript",
   "main": "dist/index.js",
   "scripts": {
@@ -26,6 +26,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.3",
+    "nodemailer": "^8.0.4",
     "rate-limiter-flexible": "^7.0.0",
     "zod": "^4.3.6"
   },

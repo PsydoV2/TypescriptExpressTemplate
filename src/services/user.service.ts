@@ -1,26 +1,32 @@
-import {UserRepository} from "../repositories/user.repository";
-import {DBConnectionPool} from "../config/DBConnectionPool";
-import {ApiError} from "../utils/ApiError";
-import {HTTPCodes} from "../utils/HTTPCodes";
+import { UserRepository } from "../repositories/user.repository";
+import { DBConnectionPool } from "../config/DBConnectionPool";
+import { ApiError } from "../utils/ApiError";
+import { HTTPCodes } from "../utils/HTTPCodes";
+import { ErrorCode } from "../utils/ErrorCodes";
 
 export const UserService = {
   async deleteUser(userID: string) {
     const connection = await DBConnectionPool.getConnection();
 
-    try{
+    try {
       await connection.beginTransaction();
 
-      const user = await  UserRepository.findUserByID(userID, connection);
+      const user = await UserRepository.findUserByID(userID, connection);
 
-      if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
+      if (!user)
+        throw new ApiError(
+          HTTPCodes.NotFound,
+          ErrorCode.USER_NOT_FOUND,
+          "User not found",
+        );
 
       await UserRepository.deleteUserByID(userID, connection);
 
       await connection.commit();
 
-      return {success: true};
+      return { success: true };
     } catch (error) {
-      if (connection)await connection.rollback();
+      if (connection) await connection.rollback();
       throw error;
     } finally {
       connection.release();
@@ -30,8 +36,13 @@ export const UserService = {
   async getUser(userID: string) {
     const user = await UserRepository.findUserByID(userID);
 
-    if (!user) throw new ApiError(HTTPCodes.NotFound, "User not found");
+    if (!user)
+      throw new ApiError(
+        HTTPCodes.NotFound,
+        ErrorCode.USER_NOT_FOUND,
+        "User not found",
+      );
 
     return user;
-  }
+  },
 };

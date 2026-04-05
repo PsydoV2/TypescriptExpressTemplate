@@ -1,24 +1,39 @@
 import { Request, Response, NextFunction } from "express";
-import { ZodError, ZodType } from "zod";
+import { ZodSchema } from "zod";
 import { ApiError } from "../utils/ApiError";
 import { HTTPCodes } from "../utils/HTTPCodes";
+import { ErrorCode } from "../utils/ErrorCodes";
 
-export const validate = (schema: ZodType) => // Hier ZodType verwenden
-    async (req: Request, _res: Response, next: NextFunction) => {
-        try {
-            await schema.parseAsync({
-                body: req.body,
-                query: req.query,
-                params: req.params,
-            });
-            next();
-        } catch (error) {
-            if (error instanceof ZodError) {
-                const message: string = error.issues
-                    .map(e => `${e.path.join(".")}: ${e.message}`)
-                    .join(", ");
-                return next(new ApiError(HTTPCodes.BadRequest, message));
-            }
-            next(error);
-        }
-    };
+export const validate =
+  (schema: ZodSchema) =>
+  (req: Request, _res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return next(
+        new ApiError(
+          HTTPCodes.BadRequest,
+          ErrorCode.MISSING_PARAMETERS,
+          result.error.issues[0].message,
+        ),
+      );
+    }
+    req.body = result.data;
+    next();
+  };
+
+export const validateQuery =
+  (schema: ZodSchema) =>
+  (req: Request, _res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      return next(
+        new ApiError(
+          HTTPCodes.BadRequest,
+          ErrorCode.MISSING_PARAMETERS,
+          result.error.issues[0].message,
+        ),
+      );
+    }
+    req.query = result.data as Record<string, string>;
+    next();
+  };

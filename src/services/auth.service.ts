@@ -1,12 +1,12 @@
 import bcrypt from "bcrypt";
-import {SignOptions} from "jsonwebtoken";
-import {DBConnectionPool} from "../config/DBConnectionPool";
-import {HTTPCodes} from "../utils/HTTPCodes";
-import {ApiError} from "../utils/ApiError";
-import {UserRepository} from "../repositories/user.repository";
-import {AuthRepository} from "../repositories/auth.repository";
-import {DTOUser} from "../types/User/user";
-
+import { SignOptions } from "jsonwebtoken";
+import { DBConnectionPool } from "../config/DBConnectionPool";
+import { HTTPCodes } from "../utils/HTTPCodes";
+import { ApiError } from "../utils/ApiError";
+import { UserRepository } from "../repositories/user.repository";
+import { AuthRepository } from "../repositories/auth.repository";
+import { DTOUser } from "../types/User/user";
+import { ErrorCode } from "../utils/ErrorCodes";
 
 export const AuthService = {
   /**
@@ -17,31 +17,55 @@ export const AuthService = {
    * - Returns JWT token and basic user info
    */
   async registerUser(username: string, email: string, password: string) {
-
     const connection = await DBConnectionPool.getConnection();
 
     try {
       await connection.beginTransaction();
 
       // Check if user already exists
-      const userByEmail = await UserRepository.findUserByEmail(email, connection);
+      const userByEmail = await UserRepository.findUserByEmail(
+        email,
+        connection,
+      );
 
-      if(userByEmail) throw new ApiError(HTTPCodes.Conflict, "E-mail already exists");
+      if (userByEmail)
+        throw new ApiError(
+          HTTPCodes.Conflict,
+          ErrorCode.EMAIL_TAKEN,
+          "E-mail already exists",
+        );
 
-      const userByUsername = await UserRepository.findUserByUsername(username, connection);
+      const userByUsername = await UserRepository.findUserByUsername(
+        username,
+        connection,
+      );
 
-      if(userByUsername) throw new ApiError(HTTPCodes.Conflict, "Username already exists");
+      if (userByUsername)
+        throw new ApiError(
+          HTTPCodes.Conflict,
+          ErrorCode.USERNAME_TAKEN,
+          "Username already exists",
+        );
 
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Insert user into database
-      await UserRepository.createNewUser(username, email, hashedPassword, connection);
+      await UserRepository.createNewUser(
+        username,
+        email,
+        hashedPassword,
+        connection,
+      );
 
-      const newUser: DTOUser = await UserRepository.findUserByUsername(username, connection);
+      const newUser: DTOUser = await UserRepository.findUserByUsername(
+        username,
+        connection,
+      );
 
       // Generate JWT
-      const jwtExpiry = (process.env.JWT_EXPIRES_IN || "100h") as SignOptions["expiresIn"];
+      const jwtExpiry = (process.env.JWT_EXPIRES_IN ||
+        "100h") as SignOptions["expiresIn"];
       const token = AuthRepository.generateJWT(newUser.userID, jwtExpiry);
 
       await connection.commit();
@@ -53,7 +77,7 @@ export const AuthService = {
         email,
       };
     } catch (error) {
-      if (connection) await connection.rollback()
+      if (connection) await connection.rollback();
       throw error;
     } finally {
       connection.release();
@@ -67,12 +91,16 @@ export const AuthService = {
    * - Returns JWT token and basic user info
    */
   async loginUser(emailOrUsername: string, password: string) {
-
     // Find user by email or username
-    const user: DTOUser = (await UserRepository.findUserByEmail(emailOrUsername)) ||
-        (await UserRepository.findUserByUsername(emailOrUsername));
+    const user: DTOUser =
+      (await UserRepository.findUserByEmail(emailOrUsername)) ||
+      (await UserRepository.findUserByUsername(emailOrUsername));
 
-    const invalidError = new ApiError(HTTPCodes.Unauthorized, "Invalid email/username or password");
+    const invalidError = new ApiError(
+      HTTPCodes.Unauthorized,
+      ErrorCode.INVALID_LOGIN,
+      "Invalid login",
+    );
 
     if (!user) throw invalidError;
 
@@ -80,7 +108,8 @@ export const AuthService = {
     if (!isPasswordValid) throw invalidError;
 
     // Generate JWT
-    const jwtExpiry = (process.env.JWT_EXPIRES_IN || "100h") as SignOptions["expiresIn"];
+    const jwtExpiry = (process.env.JWT_EXPIRES_IN ||
+      "100h") as SignOptions["expiresIn"];
     const token = AuthRepository.generateJWT(user.userID, jwtExpiry);
 
     return {
@@ -89,5 +118,5 @@ export const AuthService = {
       username: user.username,
       email: user.email,
     };
-  }
+  },
 };

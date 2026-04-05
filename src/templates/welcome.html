@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Willkommen bei Beer Hunter</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0f1117;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #e8e8e8;
+        }
+        .wrapper {
+            max-width: 560px;
+            margin: 40px auto;
+            background-color: #1a1d27;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #2a2d3a;
+        }
+        .header {
+            background: linear-gradient(135deg, #e8a020 0%, #c47b0a 100%);
+            padding: 40px 32px;
+            text-align: center;
+        }
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .header h1 {
+            color: #fff;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            color: rgba(255,255,255,0.85);
+            margin-top: 6px;
+            font-size: 15px;
+        }
+        .body {
+            padding: 36px 32px;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+        .text {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #a0a4b8;
+            margin-bottom: 24px;
+        }
+        .highlight {
+            color: #e8a020;
+            font-weight: 600;
+        }
+        .features {
+            background-color: #12141e;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            border: 1px solid #2a2d3a;
+        }
+        .features-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #6b7094;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+        .feature-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .feature-row:last-child { margin-bottom: 0; }
+        .feature-icon {
+            font-size: 18px;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .feature-text {
+            font-size: 14px;
+            color: #c8cce0;
+        }
+        .cta-btn {
+            display: block;
+            text-align: center;
+            background: linear-gradient(135deg, #e8a020, #c47b0a);
+            color: #fff !important;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 32px;
+            border-radius: 10px;
+            margin-bottom: 28px;
+        }
+        .footer {
+            padding: 20px 32px 32px;
+            border-top: 1px solid #2a2d3a;
+            text-align: center;
+        }
+        .footer p {
+            font-size: 12px;
+            color: #4a4e68;
+            line-height: 1.6;
+        }
+        .footer a {
+            color: #6b7094;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="header">
+        <div class="header-icon">🍺</div>
+        <h1>Willkommen bei Beer Hunter!</h1>
+        <p>Dein Konto wurde erfolgreich erstellt</p>
+    </div>
+
+    <div class="body">
+        <p class="greeting">Hey {{username}}, schön dass du dabei bist!</p>
+        <p class="text">
+            Du bist jetzt Teil der <span class="highlight">Beer Hunter Community</span> —
+            scanne Biere, entdecke Shops in deiner Nähe und hilf anderen dabei,
+            ihr Lieblingsbier zu finden.
+        </p>
+
+        <div class="features">
+            <p class="features-title">Was dich erwartet</p>
+            <div class="feature-row">
+                <span class="feature-icon">📷</span>
+                <span class="feature-text">Barcodes scannen und Biere in der Datenbank erfassen</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon">🗺️</span>
+                <span class="feature-text">Shops auf der Karte entdecken und neue hinzufügen</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon">🏆</span>
+                <span class="feature-text">Reputation sammeln und im Leaderboard aufsteigen</span>
+            </div>
+            <div class="feature-row">
+                <span class="feature-icon">🎖️</span>
+                <span class="feature-text">Badges freischalten für besondere Leistungen</span>
+            </div>
+        </div>
+
+        <a href="{{appUrl}}" class="cta-btn">App öffnen →</a>
+
+        <p class="text" style="margin-bottom: 0;">
+            Bei Fragen erreichst du uns unter
+            <a href="mailto:{{supportEmail}}" style="color: #e8a020;">{{supportEmail}}</a>.
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>
+            Du erhältst diese E-Mail weil du dich am {{registeredAt}} bei Beer Hunter registriert hast.<br />
+            <a href="{{unsubscribeUrl}}">E-Mails abbestellen</a> ·
+            <a href="{{privacyUrl}}">Datenschutz</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

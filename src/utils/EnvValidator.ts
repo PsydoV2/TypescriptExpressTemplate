@@ -1,4 +1,4 @@
-import {LogHelper, LogSeverity} from "./LogHelper";
+import { LogHelper, LogSeverity } from "../helper/LogHelper";
 
 /**
  * Utility class for validating environment variables.
@@ -29,7 +29,8 @@ export class EnvValidator {
 
       process.exit(1); // Hard exit to prevent app from running with invalid config
     } else {
-      const successMessage: string = "✅ All required environment variables are present.";
+      const successMessage: string =
+        "✅ All required environment variables are present.";
       console.log(successMessage);
       await LogHelper.logInfo("ENV", successMessage);
     }

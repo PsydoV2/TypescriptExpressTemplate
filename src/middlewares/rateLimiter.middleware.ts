@@ -24,7 +24,7 @@ const createMiddleware = (limiter: RateLimiterMemory) => {
       const retrySecs = Math.ceil(err.msBeforeNext / 1000) || 1;
       res.set("Retry-After", String(retrySecs));
       return res.status(HTTPCodes.TooManyRequests).json({
-        message: `Too many requests. Please try again in ${retrySecs} seconds.`
+        message: `Too many requests. Please try again in ${retrySecs} seconds.`,
       });
     }
   };

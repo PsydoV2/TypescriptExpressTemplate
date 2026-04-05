@@ -1,22 +1,16 @@
 import { DBConnectionPool, isDBConfigured } from "../config/DBConnectionPool";
-import { getRequestId } from "./RequestContext";
 import fs from "fs/promises";
 import path from "path";
+import { getRequestId } from "../utils/RequestContext";
 
 export enum LogSeverity {
   CRITICAL = "critical",
   ERROR = "error",
   WARNING = "warning",
   INFO = "info",
-  REQUEST = "request"
+  REQUEST = "request",
 }
 
-/**
- * LogHelper utility class
- * - Provides file-based logging (info logs)
- * - Provides optional database-based logging (errors)
- * - Can be adapted depending on project requirements
- */
 export class LogHelper {
   private static dbConfigWarned = false;
 
@@ -28,8 +22,14 @@ export class LogHelper {
     return new Date().toISOString(); // YYYY-MM-DDTHH:mm:ss.sssZ
   }
 
+  private static resolveLogDir(logDirName: string): string {
+    return process.env.LOG_DIR
+      ? path.resolve(process.env.LOG_DIR)
+      : path.resolve(__dirname, "..", logDirName);
+  }
+
   private static async createLogDirIfNotExists(logDirName: string) {
-    const logDir = path.resolve(process.cwd(), logDirName);
+    const logDir = this.resolveLogDir(logDirName);
     try {
       await fs.mkdir(logDir, { recursive: true });
     } catch (err) {
@@ -43,11 +43,17 @@ export class LogHelper {
     return path.join(logDirPath, `${prefix}-${this.getTodayDate()}.log`);
   }
 
-  private static logLineBuilder(route: string, message: string, severity: LogSeverity = LogSeverity.INFO) {
+  private static logLineBuilder(
+    route: string,
+    message: string,
+    severity: LogSeverity = LogSeverity.INFO,
+  ) {
     const requestId = getRequestId();
     const requestIdPart = requestId ? ` | ${requestId}` : "";
-    return `${this.getTodayDateTime()} | ${severity.toUpperCase()}${requestIdPart} | ${route} | ` +
-           `${String(message).replace(/\s+/g, " ").trim()}\n`;
+    return (
+      `${this.getTodayDateTime()} | ${severity.toUpperCase()}${requestIdPart} | ${route} | ` +
+      `${String(message).replace(/\s+/g, " ").trim()}\n`
+    );
   }
 
   private static async writeLogToFile(filePath: string, line: string) {
@@ -58,7 +64,11 @@ export class LogHelper {
     }
   }
 
-  private static async logFile(route: string, message: string, severity: LogSeverity = LogSeverity.INFO){
+  private static async logFile(
+    route: string,
+    message: string,
+    severity: LogSeverity = LogSeverity.INFO,
+  ) {
     const logDirPath = await this.createLogDirIfNotExists("logs");
     const todayFilePath = this.getTodayFilePath(logDirPath, severity);
     const line = this.logLineBuilder(route, message, severity);
@@ -98,7 +108,11 @@ export class LogHelper {
    * @param error Error object or string
    * @param level 'critical' | 'error' | 'warning'
    */
-  public static async logError(route: string, error: unknown, level: LogSeverity) {
+  public static async logError(
+    route: string,
+    error: unknown,
+    level: LogSeverity,
+  ) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (level === LogSeverity.INFO) {
@@ -115,7 +129,11 @@ export class LogHelper {
     // If DB is not configured, skip DB logging and emit a one-time file warning
     if (!isDBConfigured()) {
       if (!this.dbConfigWarned) {
-        await this.logFile("DBConnection", "Database configuration is incomplete. DB logging is disabled.", LogSeverity.CRITICAL);
+        await this.logFile(
+          "DBConnection",
+          "Database configuration is incomplete. DB logging is disabled.",
+          LogSeverity.CRITICAL,
+        );
         this.dbConfigWarned = true;
       }
       return;
@@ -134,16 +152,21 @@ export class LogHelper {
         VALUES (?, ?, ?)
       `;
 
-      const []: any = await connection.query(
-          insertSQL,
-          [route, errorString, level]
-      );
+      const []: any = await connection.query(insertSQL, [
+        route,
+        errorString,
+        level,
+      ]);
 
       await connection.commit();
     } catch (dbError) {
       await connection.rollback();
 
-      await this.logFile("DBConnection", `DB logging failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`, LogSeverity.CRITICAL);
+      await this.logFile(
+        "DBConnection",
+        `DB logging failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        LogSeverity.CRITICAL,
+      );
     } finally {
       connection.release();
     }

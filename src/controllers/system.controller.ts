@@ -1,19 +1,18 @@
-import {NextFunction, Request, Response} from "express";
-import {checkDatabaseHealth} from "../utils/HealthCheck";
+import { NextFunction, Response, Request } from "express";
+import { SystemService } from "../services/system.service";
+import { HTTPCodes } from "../utils/HTTPCodes";
+import DTOSystemHealth from "../types/DTOSystemHealth";
 
-export const healthCheck = async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-        const isDbHealthy: boolean = await checkDatabaseHealth();
-        const status: 200 | 503 = isDbHealthy ? 200 : 503;
+export const health = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result: DTOSystemHealth = await SystemService.health();
 
-        res.status(status).json({
-            status: isDbHealthy ? "UP" : "DOWN",
-            timestamp: new Date().toISOString(),
-            services: {
-                database: isDbHealthy ? "healthy" : "unhealthy"
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
+    return res.status(HTTPCodes.OK).send(result);
+  } catch (error) {
+    next(error);
+  }
 };

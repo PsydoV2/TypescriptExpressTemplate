@@ -1,14 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { HTTPCodes } from "../utils/HTTPCodes";
+import { ErrorCode } from "../utils/ErrorCodes";
 import { JWTToken } from "../utils/JWTToken";
 
-/**
- * Authentication middleware to protect secured routes.
- * - Extracts JWT token from the "Authorization" header.
- * - Verifies the token validity.
- * - If valid → attaches userID from payload to the request object.
- * - If invalid or missing → responds with 401 Unauthorized.
- */
 export const authMiddleware = (
   req: Request,
   res: Response,
@@ -20,8 +14,8 @@ export const authMiddleware = (
   // 1. Check if token exists
   if (!token) {
     return res.status(HTTPCodes.Unauthorized).json({
+      code: ErrorCode.MISSING_TOKEN,
       message: "Authentication required",
-      code: "MISSING_TOKEN",
     });
   }
 
@@ -30,8 +24,8 @@ export const authMiddleware = (
 
   if (!payload || !payload.userID) {
     return res.status(HTTPCodes.Unauthorized).json({
+      code: ErrorCode.UNAUTHORIZED,
       message: "Session expired or invalid",
-      code: "UNAUTHORIZED",
     });
   }
 

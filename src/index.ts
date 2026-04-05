@@ -3,9 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import https from "https";
 import http from "http";
-import fs from "fs";
 
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { correlationId } from "./middlewares/correlationId.middleware";
@@ -14,114 +12,123 @@ import userRoutes from "./routes/user.routes";
 import { notFoundHandler } from "./middlewares/notFoundHandler.middleware";
 import { EnvValidator } from "./utils/EnvValidator";
 import { globalRequestLogger } from "./middlewares/requestLogger.middleware";
-import { authRateLimit, globalRateLimit } from "./middlewares/rateLimiter.middleware";
+import {
+  authRateLimit,
+  globalRateLimit,
+} from "./middlewares/rateLimiter.middleware";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import systemRoutes from "./routes/system.routes";
 import { DBConnectionPool } from "./config/DBConnectionPool";
+import { requestTimeout } from "./middlewares/timeout.middleware";
+import { ApiError } from "./utils/ApiError";
+import { ErrorCode } from "./utils/ErrorCodes";
+import { HTTPCodes } from "./utils/HTTPCodes";
 
 // Load environment variables
 dotenv.config();
 
 const startServer = async () => {
-    // Validate required environment variables and then bootstrap the app
-    await EnvValidator.checkEnv([
-        "DBHOST",
-        "DBPORT",
-        "DBNAME",
-        "DBUSER",
-        "DBPASSWORD",
-        "SECRETKEYJWT",
-        "HTTPSPORT",
-        "HTTPPORT",
-        "CERTKEYPATH",
-        "CERTPATH"
-    ]);
+  // Validate required environment variables and then bootstrap the app
+  await EnvValidator.checkEnv([
+    "DBHOST",
+    "DBPORT",
+    "DBNAME",
+    "DBUSER",
+    "DBPASSWORD",
+    "SECRETKEYJWT",
+    "JWT_EXPIRES_IN",
+    "HTTPPORT",
+    "CORS_ORIGIN",
+    "LOG_DIR",
+  ]);
 
-    const app = express();
+  const app = express();
 
-    // Security middleware
-    app.use(helmet());
+  app.set("trust proxy", 1);
 
-    // Correlation ID (must be first to attach ID to all logs/responses)
-    app.use(correlationId);
+  // Correlation ID: must be first so all subsequent logs carry the request ID
+  app.use(correlationId);
 
-    // Gzip compression
-    app.use(compression());
+  // Request timeout: 30s per request
+  app.use(requestTimeout);
 
-    // JSON body parser with size limit
-    app.use(express.json({ limit: "10kb" }));
+  // Security middleware
+  app.use(helmet());
 
-    // Basic request logger (can be replaced with a proper logger like Winston or Pino)
-    app.use(globalRequestLogger);
+  // Gzip compression
+  app.use(compression());
 
-    // CORS configuration — set CORS_ORIGIN in .env, defaults to * for local development
-    app.use(
-        cors({
-            origin: process.env.CORS_ORIGIN || "*",
-            methods: ["GET", "POST", "DELETE", "OPTIONS"],
-            allowedHeaders: ["Authorization", "Content-Type", "x-request-id"],
-            credentials: true,
-        })
-    );
+  // JSON body parser with size limit
+  app.use(express.json({ limit: "10kb" }));
 
-    // Global rate limiting
-    app.use(globalRateLimit);
+  // Basic request logger (can be replaced with a proper logger like Winston or Pino)
+  app.use(globalRequestLogger);
 
-    // Routes (versioned under /api/v1/)
-    app.use("/api/v1/system/", systemRoutes);
-    app.use("/api/v1/auth/", authRateLimit, authRoutes);
-    app.use("/api/v1/user/", authMiddleware, userRoutes);
+  // CORS configuration — set CORS_ORIGIN in .env, defaults to * for local development
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(",");
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins?.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(
+            new ApiError(
+              HTTPCodes.Forbidden,
+              ErrorCode.CORS_UNALLOWED,
+              "Not allowed by CORS",
+            ),
+          );
+        }
+      },
+      methods: ["GET", "POST", "OPTIONS", "DELETE", "PATCH"],
+      allowedHeaders: ["Authorization", "Content-Type", "X-Device-Name"],
+      credentials: true,
+    }),
+  );
 
-    // Fallbacks
-    app.use(notFoundHandler);
-    app.use(errorHandler);
+  // Global rate limiting
+  app.use(globalRateLimit);
 
-    // Ports
-    const HTTPPORT: number = parseInt(process.env.HTTPPORT || "9080", 10);
-    const HTTPSPORT: number = parseInt(process.env.HTTPSPORT || "9444", 10);
-    const CERTKEYPATH: string = process.env.CERTKEYPATH || "";
-    const CERTPATH: string = process.env.CERTPATH || "";
+  // Routes (versioned under /api/v1/)
+  app.use("/api/v1/system/", systemRoutes);
+  app.use("/api/v1/auth/", authRateLimit, authRoutes);
+  app.use("/api/v1/user/", authMiddleware, userRoutes);
 
-    /**
-     * Start HTTP in local development (NODE_ENV=development),
-     * otherwise start HTTPS server in production.
-     */
-    let server: http.Server | https.Server;
+  // Fallbacks
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
-    if (process.env.NODE_ENV === "development") {
-        server = http.createServer(app).listen(HTTPPORT, () => {
-            console.log(`🚀 API (HTTP) running on port ${HTTPPORT}`);
-        });
-    } else {
-        server = https
-            .createServer(
-                {
-                    key: fs.readFileSync(CERTKEYPATH),
-                    cert: fs.readFileSync(CERTPATH),
-                },
-                app
-            )
-            .listen(HTTPSPORT, () => {
-                console.log(`🚀 API (HTTPS) running on port ${HTTPSPORT}`);
-            });
-    }
+  // Ports
+  const HTTPPORT: number = parseInt(process.env.HTTPPORT || "9080", 10);
 
-    // Graceful shutdown
-    const shutdown = async (signal: string) => {
-        console.log(`\n${signal} received — shutting down gracefully...`);
-        server.close(async () => {
-            try {
-                await DBConnectionPool.end();
-                console.log("Database pool closed.");
-            } catch (err) {
-                console.error("Error closing database pool:", err);
-            }
-            process.exit(0);
-        });
-    };
+  /**
+   * Start HTTP Server (use HTTPS Proxy in Production)
+   */
 
-    process.on("SIGTERM", () => shutdown("SIGTERM"));
-    process.on("SIGINT", () => shutdown("SIGINT"));
+  const httpServer = http.createServer(app);
+  // TCP-level safety net: close idle/stale connections after 60s
+  httpServer.setTimeout(60_000);
+  httpServer.listen(HTTPPORT, () => {
+    console.log(`🚀 API (HTTP) running on port ${HTTPPORT}`);
+  });
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    console.log(`\n${signal} received — shutting down gracefully...`);
+    httpServer.close(async () => {
+      try {
+        await DBConnectionPool.end();
+        console.log("Database pool closed.");
+      } catch (err) {
+        console.error("Error closing database pool:", err);
+      }
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
 void startServer();

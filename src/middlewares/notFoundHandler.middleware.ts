@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
 import { HTTPCodes } from "../utils/HTTPCodes";
+import { ErrorCode } from "../utils/ErrorCodes";
 
-/**
- * Middleware for handling 404 Not Found errors.
- * Triggered when no route matches the incoming request.
- */
 export function notFoundHandler(_req: Request, res: Response) {
-  res.status(HTTPCodes.NotFound).json({ message: "Route not found" });
+  res
+    .status(HTTPCodes.NotFound)
+    .json({ code: ErrorCode.NOT_FOUND, message: "Route not found" });
 }
-
