@@ -82,7 +82,7 @@ const startServer = async () => {
         }
       },
       methods: ["GET", "POST", "OPTIONS", "DELETE", "PATCH"],
-      allowedHeaders: ["Authorization", "Content-Type", "X-Device-Name"],
+      allowedHeaders: ["Authorization", "Content-Type", "x-request-id"],
       credentials: true,
     }),
   );
