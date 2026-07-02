@@ -1,15 +1,18 @@
 import { DBConnectionPool, isDBConfigured } from "../config/DBConnectionPool";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { env } from "../config/env";
 import { getRequestId } from "../utils/RequestContext";
 
-export enum LogSeverity {
-  CRITICAL = "critical",
-  ERROR = "error",
-  WARNING = "warning",
-  INFO = "info",
-  REQUEST = "request",
-}
+export const LogSeverity = {
+  CRITICAL: "critical",
+  ERROR: "error",
+  WARNING: "warning",
+  INFO: "info",
+  REQUEST: "request",
+} as const;
+
+export type LogSeverity = (typeof LogSeverity)[keyof typeof LogSeverity];
 
 export class LogHelper {
   private static dbConfigWarned = false;
@@ -23,8 +26,8 @@ export class LogHelper {
   }
 
   private static resolveLogDir(logDirName: string): string {
-    return process.env.LOG_DIR
-      ? path.resolve(process.env.LOG_DIR)
+    return env.LOG_DIR
+      ? path.resolve(env.LOG_DIR)
       : path.resolve(__dirname, "..", logDirName);
   }
 
@@ -142,7 +145,7 @@ export class LogHelper {
     const errorString =
       error instanceof Error ? error.stack || error.message : String(error);
 
-    let connection = await DBConnectionPool.getConnection();
+    const connection = await DBConnectionPool.getConnection();
     try {
       await connection.beginTransaction();
 
@@ -152,11 +155,7 @@ export class LogHelper {
         VALUES (?, ?, ?)
       `;
 
-      const []: any = await connection.query(insertSQL, [
-        route,
-        errorString,
-        level,
-      ]);
+      await connection.query(insertSQL, [route, errorString, level]);
 
       await connection.commit();
     } catch (dbError) {

@@ -10,7 +10,7 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
         const result = await UserService.deleteUser(userID);
 
         return res.status(HTTPCodes.OK).json(result);
-    } catch (error: any) {
+    } catch (error) {
         next(error);
     }
 };

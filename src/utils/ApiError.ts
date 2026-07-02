@@ -15,8 +15,8 @@ export class ApiError extends Error {
     super(message);
     this.status = status;
     this.code = code;
-
-    // Required for proper "instanceof" checks when extending Error
-    Object.setPrototypeOf(this, ApiError.prototype);
+    this.name = "ApiError";
+    // Note: no Object.setPrototypeOf needed — the ES2020 target restores the
+    // prototype chain correctly, so `instanceof ApiError` works out of the box.
   }
 }

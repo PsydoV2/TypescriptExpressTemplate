@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { runWithRequestId } from "../utils/RequestContext";
 
 /**

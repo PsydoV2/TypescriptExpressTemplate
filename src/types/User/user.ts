@@ -11,3 +11,9 @@ export interface DTOUser {
   createdAt: Date;
   isActive: boolean;
 }
+
+/**
+ * Public-facing user shape without the password hash.
+ * Use this for anything returned to API clients so the hash never leaks.
+ */
+export type DTOUserPublic = Omit<DTOUser, "passwordHash">;

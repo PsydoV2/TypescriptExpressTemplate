@@ -164,7 +164,7 @@ All routes are versioned under `/api/v1/`.
 
 Tests are located in `tests/unit/` and cover:
 
-- **Utils**: `ApiError`, `EnvValidator`, `HTTPCodes`, `JWTToken`
+- **Utils**: `ApiError`, `HTTPCodes`, `JWTToken`
 - **Schemas**: `auth.schema`, `user.schema`
 - **Middlewares**: `auth`, `errorHandler`, `validate`, `rateLimiter`
 - **Services**: `auth.service`, `user.service`

@@ -3,10 +3,12 @@ import { z } from "zod";
 import { Request, Response, NextFunction } from "express";
 
 describe("validate Middleware", () => {
-    // The validate middleware parses req.body directly, so the schema
-    // describes the body shape (not a wrapper object).
+    // The validate middleware parses the { body, query, params } envelope,
+    // so schemas describe the request part(s) they care about.
     const testSchema = z.object({
-        name: z.string().min(3)
+        body: z.object({
+            name: z.string().min(3)
+        })
     });
 
     let mockRequest: Partial<Request>;

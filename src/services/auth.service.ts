@@ -1,5 +1,6 @@
-import bcrypt from "bcrypt";
+import argon2 from "argon2";
 import { SignOptions } from "jsonwebtoken";
+import { env } from "../config/env";
 import { DBConnectionPool } from "../config/DBConnectionPool";
 import { HTTPCodes } from "../utils/HTTPCodes";
 import { ApiError } from "../utils/ApiError";
@@ -47,8 +48,8 @@ export const AuthService = {
           "Username already exists",
         );
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Hash password (argon2id is the current OWASP-recommended algorithm)
+      const hashedPassword = await argon2.hash(password);
 
       // Insert user into database
       await UserRepository.createNewUser(
@@ -58,14 +59,20 @@ export const AuthService = {
         connection,
       );
 
-      const newUser: DTOUser = await UserRepository.findUserByUsername(
+      const newUser = await UserRepository.findUserByUsername(
         username,
         connection,
       );
 
+      if (!newUser)
+        throw new ApiError(
+          HTTPCodes.InternalServerError,
+          ErrorCode.INTERNAL_ERROR,
+          "User creation failed",
+        );
+
       // Generate JWT
-      const jwtExpiry = (process.env.JWT_EXPIRES_IN ||
-        "100h") as SignOptions["expiresIn"];
+      const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
       const token = AuthRepository.generateJWT(newUser.userID, jwtExpiry);
 
       await connection.commit();
@@ -92,7 +99,7 @@ export const AuthService = {
    */
   async loginUser(emailOrUsername: string, password: string) {
     // Find user by email or username
-    const user: DTOUser =
+    const user: DTOUser | null =
       (await UserRepository.findUserByEmail(emailOrUsername)) ||
       (await UserRepository.findUserByUsername(emailOrUsername));
 
@@ -104,12 +111,11 @@ export const AuthService = {
 
     if (!user) throw invalidError;
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) throw invalidError;
 
     // Generate JWT
-    const jwtExpiry = (process.env.JWT_EXPIRES_IN ||
-      "100h") as SignOptions["expiresIn"];
+    const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
     const token = AuthRepository.generateJWT(user.userID, jwtExpiry);
 
     return {

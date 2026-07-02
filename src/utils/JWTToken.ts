@@ -1,21 +1,7 @@
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import { LogHelper, LogSeverity } from "../helper/LogHelper";
+import { env } from "../config/env";
 
-dotenv.config();
-
-export const getSecret = () => {
-  const secret = process.env.SECRETKEYJWT || "";
-  if (!secret) {
-    void LogHelper.logError(
-      "ENV",
-      "❌ SECRETKEYJWT missing in .env",
-      LogSeverity.CRITICAL,
-    );
-    throw new Error("❌ SECRETKEYJWT missing in .env");
-  }
-  return secret;
-};
+export const getSecret = () => env.SECRETKEYJWT;
 
 /**
  * JWT payload interface.
@@ -52,15 +38,15 @@ export class JWTToken {
    */
   static verifyAuthToken(token: string): AuthTokenPayload | undefined {
     try {
-      const decoded = jwt.verify(token, getSecret()) as unknown;
+      const decoded: unknown = jwt.verify(token, getSecret());
 
       if (
         typeof decoded === "object" &&
         decoded !== null &&
         "userID" in decoded &&
-        typeof (decoded as any).userID === "string"
+        typeof (decoded as Record<string, unknown>).userID === "string"
       ) {
-        return decoded as AuthTokenPayload;
+        return { userID: (decoded as { userID: string }).userID };
       }
 
       return undefined;

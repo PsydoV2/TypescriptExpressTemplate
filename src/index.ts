@@ -1,16 +1,16 @@
+// Import the validated env first so misconfiguration fails fast at startup.
+import { env } from "./config/env";
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import http from "http";
+import http from "node:http";
 
 import { authMiddleware } from "./middlewares/auth.middleware";
 import { correlationId } from "./middlewares/correlationId.middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import { notFoundHandler } from "./middlewares/notFoundHandler.middleware";
-import { EnvValidator } from "./utils/EnvValidator";
 import { globalRequestLogger } from "./middlewares/requestLogger.middleware";
 import {
   authRateLimit,
@@ -24,24 +24,7 @@ import { ApiError } from "./utils/ApiError";
 import { ErrorCode } from "./utils/ErrorCodes";
 import { HTTPCodes } from "./utils/HTTPCodes";
 
-// Load environment variables
-dotenv.config();
-
 const startServer = async () => {
-  // Validate required environment variables and then bootstrap the app
-  await EnvValidator.checkEnv([
-    "DBHOST",
-    "DBPORT",
-    "DBNAME",
-    "DBUSER",
-    "DBPASSWORD",
-    "SECRETKEYJWT",
-    "JWT_EXPIRES_IN",
-    "HTTPPORT",
-    "CORS_ORIGIN",
-    "LOG_DIR",
-  ]);
-
   const app = express();
 
   app.set("trust proxy", 1);
@@ -65,7 +48,7 @@ const startServer = async () => {
   app.use(globalRequestLogger);
 
   // CORS configuration — set CORS_ORIGIN in .env, defaults to * for local development
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(",");
+  const allowedOrigins = env.CORS_ORIGIN.split(",");
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -100,7 +83,7 @@ const startServer = async () => {
   app.use(errorHandler);
 
   // Ports
-  const HTTPPORT: number = parseInt(process.env.HTTPPORT || "9080", 10);
+  const HTTPPORT = env.HTTPPORT;
 
   /**
    * Start HTTP Server (use HTTPS Proxy in Production)
