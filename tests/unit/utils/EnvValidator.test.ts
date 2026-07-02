@@ -1,5 +1,8 @@
 import { EnvValidator } from "../../../src/utils/EnvValidator";
 
+// Mock LogHelper so checkEnv does not perform real (async) file I/O.
+jest.mock("../../../src/helper/LogHelper");
+
 const ORIGINAL_ENV = { ...process.env };
 
 describe("EnvValidator.checkEnv", () => {
