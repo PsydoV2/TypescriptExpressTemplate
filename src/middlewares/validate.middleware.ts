@@ -34,6 +34,12 @@ export const validateQuery =
         ),
       );
     }
-    req.query = result.data as Record<string, string>;
+    // Express 5: req.query is a read-only getter and can no longer be
+    // reassigned. Mutate the existing object in place so the validated
+    // (and coerced) values are reflected on req.query.
+    for (const key of Object.keys(req.query)) {
+      delete (req.query as Record<string, unknown>)[key];
+    }
+    Object.assign(req.query, result.data);
     next();
   };
