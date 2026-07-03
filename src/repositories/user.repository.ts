@@ -60,6 +60,19 @@ export const UserRepository = {
     await db.query("DELETE FROM Users WHERE userID = ?", [id]);
   },
 
+  async updatePasswordByID(
+    userID: string,
+    passwordHash: string,
+    connection?: DBExecutor,
+  ): Promise<void> {
+    const db = connection ?? DBConnectionPool;
+
+    await db.query("UPDATE Users SET passwordHash = ? WHERE userID = ?", [
+      passwordHash,
+      userID,
+    ]);
+  },
+
   async createNewUser(
     username: string,
     email: string,

@@ -31,6 +31,12 @@ const envSchema = z.object({
   // Auth
   SECRETKEYJWT: z.string().min(1),
   JWT_EXPIRES_IN: z.string().min(1).default("100h"),
+  REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().positive().default(30),
+  PASSWORD_RESET_EXPIRES_IN_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30),
 
   // HTTP / CORS
   HTTPPORT: z.coerce.number().int().positive().default(9080),
@@ -38,6 +44,11 @@ const envSchema = z.object({
 
   // Logging
   LOG_DIR: z.string().optional(),
+
+  // Email content — filled into src/templates/*.html
+  APP_NAME: z.string().min(1).default("Your App"),
+  APP_URL: z.string().min(1).default("http://localhost:3000"),
+  PRIVACY_URL: z.string().min(1).default("#"),
 
   // SMTP
   SMTP_HOST: z.string().min(1),

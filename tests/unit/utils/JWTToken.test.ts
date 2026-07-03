@@ -39,4 +39,30 @@ describe("JWTToken.verifyAuthToken", () => {
     const payload = JWTToken.verifyAuthToken("invalid.token");
     expect(payload).toBeUndefined();
   });
+
+  it("rejects a password-reset token used as an auth token", () => {
+    const resetToken = JWTToken.generatePasswordResetToken("user-123", "30m");
+    const payload = JWTToken.verifyAuthToken(resetToken);
+    expect(payload).toBeUndefined();
+  });
+});
+
+describe("JWTToken password reset tokens", () => {
+  beforeEach(() => {
+    process.env.SECRETKEYJWT = "test-secret";
+  });
+
+  it("round-trips a valid password reset token", () => {
+    const token = JWTToken.generatePasswordResetToken("user-123", "30m");
+    expect(JWTToken.verifyPasswordResetToken(token)).toBe("user-123");
+  });
+
+  it("rejects a regular auth token used as a password reset token", () => {
+    const authToken = JWTToken.generateAuthToken("user-123", "1h");
+    expect(JWTToken.verifyPasswordResetToken(authToken)).toBeUndefined();
+  });
+
+  it("returns undefined for an invalid token", () => {
+    expect(JWTToken.verifyPasswordResetToken("invalid.token")).toBeUndefined();
+  });
 });

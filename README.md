@@ -2,6 +2,8 @@
 
 A professional, scalable backend template built with **Express** and **TypeScript**. Focuses on a strict **Service-Repository pattern**, type-safe **Zod validation**, and a robust logging system.
 
+Requires Node.js **>= 20**.
+
 ---
 
 ## 📂 Project Structure
@@ -64,11 +66,12 @@ Every request gets a unique ID (`x-request-id`):
 
 - `helmet` — HTTP security headers
 - `argon2id` — password hashing (OWASP-recommended)
-- JWT authentication — token-based auth with configurable expiry via `JWT_EXPIRES_IN`
+- JWT authentication — short-lived access tokens (`JWT_EXPIRES_IN`) plus a DB-backed refresh token (`REFRESH_TOKEN_EXPIRES_IN_DAYS`) that can be revoked on logout
 - Rate limiting — global (100 req/60s) and auth-specific (5 attempts/5 min, 15 min block)
 - Zod — input validation on all endpoints
 - Request body size limit — 10 kb maximum
 - Sensitive fields are **redacted** before logging (`password`, `passwordHash`, `token`, `secret`, `authorization`)
+- Password-reset requests never reveal whether an email is registered
 
 ### 6. Graceful Shutdown
 
@@ -79,6 +82,19 @@ On `SIGTERM` or `SIGINT` (e.g. Kubernetes, Docker, Ctrl+C):
 3. Database connections are closed cleanly.
 4. Controlled `process.exit(0)`.
 
+### 7. Crash Handling
+
+`unhandledRejection` is logged as `CRITICAL` and the process keeps running (a single stray rejection doesn't necessarily mean the server is broken). `uncaughtException` is logged and then the process exits with code 1 — its internal state is no longer trustworthy, so a process manager (systemd, Docker, PM2, ...) should restart it.
+
+### 8. Transactional Emails
+
+`EmailHelper` renders `src/templates/*.html` and sends them via `nodemailer`. Two flows are wired up out of the box:
+
+- **Welcome email** — sent after registration (best-effort: a failed send does not fail registration)
+- **Password reset** — `POST /api/v1/auth/request-password-reset` emails a short-lived reset link; `POST /api/v1/auth/reset-password` consumes it
+
+`APP_NAME`, `APP_URL`, and `PRIVACY_URL` fill in the `{{appName}}`, `{{appUrl}}`, `{{privacyUrl}}` placeholders in both templates — replace the templates' copy and styling with your own.
+
 ---
 
 ## ⚙️ Environment Variables
@@ -87,25 +103,30 @@ Copy `.env.example` to `.env` and fill in your values.
 
 All variables are validated at startup against a Zod schema (`src/config/env.ts`) — the process exits with a readable error if anything required is missing or malformed.
 
-| Variable         | Description                                                                               |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| `NODE_ENV`       | `development` \| `test` \| `production` (default `development`)                           |
-| `DBHOST`         | MySQL host                                                                                |
-| `DBPORT`         | MySQL port                                                                                |
-| `DBNAME`         | Database name                                                                             |
-| `DBUSER`         | Database user                                                                             |
-| `DBPASSWORD`     | Database password                                                                         |
-| `SECRETKEYJWT`   | Secret key for JWT signing                                                                |
-| `JWT_EXPIRES_IN` | JWT expiry duration (e.g. `1h`, `7d`, `100h`, default `100h`)                             |
-| `HTTPPORT`       | HTTP port (default `9080`)                                                                |
-| `CORS_ORIGIN`    | Allowed CORS origin(s), comma-separated (e.g. `https://example.com`, `*` for development) |
-| `LOG_DIR`        | Directory for log files (optional, defaults to `src/../logs`)                             |
-| `SMTP_HOST`      | SMTP server host                                                                          |
-| `SMTP_PORT`      | SMTP server port (default `587`)                                                          |
-| `SMTP_SECURE`    | `true` for port 465, `false` for STARTTLS (default `false`)                               |
-| `SMTP_USER`      | SMTP auth user                                                                            |
-| `SMTP_PASS`      | SMTP auth password                                                                        |
-| `SMTP_FROM`      | "From" address for outgoing mail (optional, defaults to `SMTP_USER`)                      |
+| Variable                            | Description                                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `NODE_ENV`                          | `development` \| `test` \| `production` (default `development`)                           |
+| `DBHOST`                            | MySQL host                                                                                |
+| `DBPORT`                            | MySQL port                                                                                |
+| `DBNAME`                            | Database name                                                                             |
+| `DBUSER`                            | Database user                                                                             |
+| `DBPASSWORD`                        | Database password                                                                         |
+| `SECRETKEYJWT`                      | Secret key for JWT signing                                                                |
+| `JWT_EXPIRES_IN`                    | Access token expiry duration (e.g. `1h`, `7d`, `100h`, default `100h`)                    |
+| `REFRESH_TOKEN_EXPIRES_IN_DAYS`     | Refresh token lifetime in days (default `30`)                                             |
+| `PASSWORD_RESET_EXPIRES_IN_MINUTES` | Password-reset link lifetime in minutes (default `30`)                                    |
+| `HTTPPORT`                          | HTTP port (default `9080`)                                                                |
+| `CORS_ORIGIN`                       | Allowed CORS origin(s), comma-separated (e.g. `https://example.com`, `*` for development) |
+| `LOG_DIR`                           | Directory for log files (optional, defaults to `src/../logs`)                             |
+| `SMTP_HOST`                         | SMTP server host                                                                          |
+| `SMTP_PORT`                         | SMTP server port (default `587`)                                                          |
+| `SMTP_SECURE`                       | `true` for port 465, `false` for STARTTLS (default `false`)                               |
+| `SMTP_USER`                         | SMTP auth user                                                                            |
+| `SMTP_PASS`                         | SMTP auth password                                                                        |
+| `SMTP_FROM`                         | "From" address for outgoing mail (optional, defaults to `SMTP_USER`)                      |
+| `APP_NAME`                          | Product name used in email templates (default `Your App`)                                 |
+| `APP_URL`                           | Base URL used to build links in emails (default `http://localhost:3000`)                  |
+| `PRIVACY_URL`                       | Privacy policy link used in email templates (default `#`)                                 |
 
 ---
 
@@ -121,6 +142,22 @@ CREATE TABLE Users (
     passwordHash VARCHAR(255) NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     isActive BOOLEAN DEFAULT TRUE
+);
+```
+
+### RefreshTokens Table
+
+Only a SHA-256 hash of the token is stored, never the raw value.
+
+```sql
+CREATE TABLE RefreshTokens (
+    tokenID VARCHAR(36) PRIMARY KEY,
+    userID VARCHAR(255) NOT NULL,
+    tokenHash VARCHAR(64) NOT NULL UNIQUE,
+    expiresAt TIMESTAMP NOT NULL,
+    revoked BOOLEAN DEFAULT FALSE,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
 );
 ```
 
@@ -142,13 +179,17 @@ CREATE TABLE ErrorLog (
 
 All routes are versioned under `/api/v1/`.
 
-| Method   | Route                        | Auth | Description                             |
-| -------- | ---------------------------- | ---- | --------------------------------------- |
-| `POST`   | `/api/v1/auth/register`      | —    | Register a new user                     |
-| `POST`   | `/api/v1/auth/login`         | —    | Login, returns a JWT                    |
-| `DELETE` | `/api/v1/user/deleteAccount` | ✅   | Delete the authenticated user's account |
-| `GET`    | `/api/v1/user/getUser`       | ✅   | Fetch user data                         |
-| `GET`    | `/api/v1/system/health`      | —    | Health check (database status)          |
+| Method   | Route                                 | Auth | Description                                          |
+| -------- | ------------------------------------- | ---- | ---------------------------------------------------- |
+| `POST`   | `/api/v1/auth/register`               | —    | Register a new user, returns access + refresh tokens |
+| `POST`   | `/api/v1/auth/login`                  | —    | Login, returns access + refresh tokens               |
+| `POST`   | `/api/v1/auth/refresh`                | —    | Exchange a refresh token for a new access token      |
+| `POST`   | `/api/v1/auth/logout`                 | —    | Revoke a refresh token                               |
+| `POST`   | `/api/v1/auth/request-password-reset` | —    | Email a password-reset link if the account exists    |
+| `POST`   | `/api/v1/auth/reset-password`         | —    | Set a new password using a reset token               |
+| `DELETE` | `/api/v1/user/deleteAccount`          | ✅   | Delete the authenticated user's account              |
+| `GET`    | `/api/v1/user/getUser`                | ✅   | Fetch user data                                      |
+| `GET`    | `/api/v1/system/health`               | —    | Health check (database status)                       |
 
 ---
 
@@ -178,7 +219,8 @@ Tests are located in `tests/unit/` and cover:
 
 - **Utils**: `ApiError`, `HTTPCodes`, `JWTToken`
 - **Schemas**: `auth.schema`, `user.schema`
-- **Middlewares**: `auth`, `errorHandler`, `validate`, `rateLimiter`
+- **Middlewares**: `auth`, `correlationId`, `errorHandler`, `validate`, `rateLimiter`
+- **Repositories**: `refreshToken.repository`
 - **Services**: `auth.service`, `user.service`
 
 ### HTTP Tests

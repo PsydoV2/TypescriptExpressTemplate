@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Willkommen bei Beer Hunter</title>
+    <title>Welcome to {{appName}}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -121,52 +121,50 @@
 <body>
 <div class="wrapper">
     <div class="header">
-        <div class="header-icon">🍺</div>
-        <h1>Willkommen bei Beer Hunter!</h1>
-        <p>Dein Konto wurde erfolgreich erstellt</p>
+        <div class="header-icon">👋</div>
+        <h1>Welcome to {{appName}}!</h1>
+        <p>Your account has been created</p>
     </div>
 
     <div class="body">
-        <p class="greeting">Hey {{username}}, schön dass du dabei bist!</p>
+        <p class="greeting">Hey {{username}}, glad to have you!</p>
         <p class="text">
-            Du bist jetzt Teil der <span class="highlight">Beer Hunter Community</span> —
-            scanne Biere, entdecke Shops in deiner Nähe und hilf anderen dabei,
-            ihr Lieblingsbier zu finden.
+            Your <span class="highlight">{{appName}}</span> account is ready to go.
+            Here's a quick overview to help you get started.
         </p>
 
         <div class="features">
-            <p class="features-title">Was dich erwartet</p>
+            <p class="features-title">What you can do</p>
             <div class="feature-row">
-                <span class="feature-icon">📷</span>
-                <span class="feature-text">Barcodes scannen und Biere in der Datenbank erfassen</span>
+                <span class="feature-icon">🚀</span>
+                <span class="feature-text">Explore your dashboard and get familiar with the basics</span>
             </div>
             <div class="feature-row">
-                <span class="feature-icon">🗺️</span>
-                <span class="feature-text">Shops auf der Karte entdecken und neue hinzufügen</span>
+                <span class="feature-icon">👤</span>
+                <span class="feature-text">Complete your profile to personalize your experience</span>
             </div>
             <div class="feature-row">
-                <span class="feature-icon">🏆</span>
-                <span class="feature-text">Reputation sammeln und im Leaderboard aufsteigen</span>
+                <span class="feature-icon">🔔</span>
+                <span class="feature-text">Turn on notifications so you never miss an update</span>
             </div>
             <div class="feature-row">
-                <span class="feature-icon">🎖️</span>
-                <span class="feature-text">Badges freischalten für besondere Leistungen</span>
+                <span class="feature-icon">💬</span>
+                <span class="feature-text">Reach out to support any time you have questions</span>
             </div>
         </div>
 
-        <a href="{{appUrl}}" class="cta-btn">App öffnen →</a>
+        <a href="{{appUrl}}" class="cta-btn">Open {{appName}} →</a>
 
         <p class="text" style="margin-bottom: 0;">
-            Bei Fragen erreichst du uns unter
+            Questions? Reach us at
             <a href="mailto:{{supportEmail}}" style="color: #e8a020;">{{supportEmail}}</a>.
         </p>
     </div>
 
     <div class="footer">
         <p>
-            Du erhältst diese E-Mail weil du dich am {{registeredAt}} bei Beer Hunter registriert hast.<br />
-            <a href="{{unsubscribeUrl}}">E-Mails abbestellen</a> ·
-            <a href="{{privacyUrl}}">Datenschutz</a>
+            You're receiving this email because you signed up for {{appName}} on {{registeredAt}}.<br />
+            <a href="{{privacyUrl}}">Privacy policy</a>
         </p>
     </div>
 </div>

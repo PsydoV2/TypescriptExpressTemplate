@@ -33,3 +33,67 @@ export const loginUser = async (
     next(error);
   }
 };
+
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { refreshToken } = req.body;
+
+  try {
+    const result = await AuthService.refreshAccessToken(refreshToken);
+
+    return res.status(HTTPCodes.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { refreshToken } = req.body;
+
+  try {
+    const result = await AuthService.logout(refreshToken);
+
+    return res.status(HTTPCodes.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requestPasswordReset = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { email } = req.body;
+
+  try {
+    const result = await AuthService.requestPasswordReset(email);
+
+    return res.status(HTTPCodes.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const result = await AuthService.resetPassword(token, newPassword);
+
+    return res.status(HTTPCodes.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
