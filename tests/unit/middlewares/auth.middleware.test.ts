@@ -38,7 +38,6 @@ describe("authMiddleware", () => {
   });
 
   it("should call next() if token is valid", () => {
-    // Mock: Simuliere erfolgreiche Token-Verifizierung
     jest
       .spyOn(JWTToken, "extractTokenFromHeader")
       .mockReturnValue("valid-token");

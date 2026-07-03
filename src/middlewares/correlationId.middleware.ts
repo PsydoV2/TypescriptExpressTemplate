@@ -3,17 +3,18 @@ import crypto from "node:crypto";
 import { runWithRequestId } from "../utils/RequestContext";
 
 /**
- * Correlation ID middleware.
- * - Uses incoming x-request-id header if provided, otherwise generates a new UUID
- * - Attaches the ID to the response header for client-side tracing
- * - Stores the ID in AsyncLocalStorage so LogHelper can access it automatically
+ * Assigns each request a correlation ID and stores it in AsyncLocalStorage,
+ * so LogHelper can attach it to every log line for that request without the
+ * ID being passed around manually.
  */
 export const correlationId = (
   req: Request,
   res: Response,
   next: NextFunction,
 ): void => {
-  const id = crypto.randomUUID();
+  const incoming = req.headers["x-request-id"];
+  const id =
+    typeof incoming === "string" && incoming ? incoming : crypto.randomUUID();
   req.headers["x-request-id"] = id;
   res.setHeader("x-request-id", id);
   runWithRequestId(id, next);

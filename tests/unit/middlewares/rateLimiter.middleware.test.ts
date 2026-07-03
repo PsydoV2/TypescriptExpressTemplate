@@ -2,7 +2,6 @@ import { globalRateLimit } from "../../../src/middlewares/rateLimiter.middleware
 import { Request, Response, NextFunction } from "express";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 
-// Wir mocken den consume-Aufruf, um einen Block zu simulieren
 describe("rateLimiter Middleware", () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
@@ -19,7 +18,6 @@ describe("rateLimiter Middleware", () => {
   });
 
   it("should return 429 when rate limit is exceeded", async () => {
-    // Wir simulieren einen Fehler vom Limiter (zu viele Anfragen)
     const consumeError = { msBeforeNext: 5000 };
     jest
       .spyOn(RateLimiterMemory.prototype, "consume")

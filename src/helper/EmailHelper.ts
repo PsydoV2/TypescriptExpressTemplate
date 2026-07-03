@@ -3,8 +3,6 @@ import path from "node:path";
 import { emailTransporter, EMAIL_FROM } from "../config/email.config";
 import { LogHelper, LogSeverity } from "./LogHelper";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type TemplateVariables = Record<string, string>;
 
 interface SendEmailOptions {
@@ -13,8 +11,6 @@ interface SendEmailOptions {
   templateName: string;
   variables: TemplateVariables;
 }
-
-// ── Template Cache ────────────────────────────────────────────────────────────
 
 const templateCache = new Map<string, string>();
 
@@ -39,16 +35,14 @@ function loadTemplate(templateName: string): string {
 }
 
 /**
- * Ersetzt alle {{variablenName}} Platzhalter im Template.
- * Unbekannte Platzhalter bleiben unverändert (kein Crash).
+ * Replaces `{{variableName}}` placeholders in the template. Unknown
+ * placeholders are left untouched instead of throwing.
  */
 function renderTemplate(html: string, variables: TemplateVariables): string {
   return html.replace(/\{\{(\w+)}}/g, (match, key) => {
     return variables[key] ?? match;
   });
 }
-
-// ── EmailHelper ───────────────────────────────────────────────────────────────
 
 export const EmailHelper = {
   async sendEmailFromTemplate({
@@ -77,10 +71,7 @@ export const EmailHelper = {
     }
   },
 
-  /**
-   * Prüft ob die SMTP-Verbindung funktioniert.
-   * Nützlich für Health-Checks beim Server-Start.
-   */
+  /** Verifies the SMTP connection; used by the system health check. */
   async verifyConnection(): Promise<boolean> {
     try {
       await emailTransporter.verify();

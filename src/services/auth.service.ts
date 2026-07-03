@@ -10,20 +10,12 @@ import { DTOUser } from "../types/DTOUser";
 import { ErrorCode } from "../utils/ErrorCodes";
 
 export const AuthService = {
-  /**
-   * Handles user registration.
-   * - Validates required fields
-   * - Checks if username/email already exist
-   * - Hashes password and stores new user
-   * - Returns JWT token and basic user info
-   */
   async registerUser(username: string, email: string, password: string) {
     const connection = await DBConnectionPool.getConnection();
 
     try {
       await connection.beginTransaction();
 
-      // Check if user already exists
       const userByEmail = await UserRepository.findUserByEmail(
         email,
         connection,
@@ -48,10 +40,9 @@ export const AuthService = {
           "Username already exists",
         );
 
-      // Hash password (argon2id is the current OWASP-recommended algorithm)
+      // argon2id is the current OWASP-recommended password hashing algorithm
       const hashedPassword = await argon2.hash(password);
 
-      // Insert user into database
       await UserRepository.createNewUser(
         username,
         email,
@@ -71,7 +62,6 @@ export const AuthService = {
           "User creation failed",
         );
 
-      // Generate JWT
       const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
       const token = JWTToken.generateAuthToken(newUser.userID, jwtExpiry);
 
@@ -91,14 +81,7 @@ export const AuthService = {
     }
   },
 
-  /**
-   * Handles user login.
-   * - Validates credentials
-   * - Checks username/email + password
-   * - Returns JWT token and basic user info
-   */
   async loginUser(emailOrUsername: string, password: string) {
-    // Find user by email or username
     const user: DTOUser | null =
       (await UserRepository.findUserByEmail(emailOrUsername)) ||
       (await UserRepository.findUserByUsername(emailOrUsername));
@@ -114,7 +97,6 @@ export const AuthService = {
     const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) throw invalidError;
 
-    // Generate JWT
     const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
     const token = JWTToken.generateAuthToken(user.userID, jwtExpiry);
 

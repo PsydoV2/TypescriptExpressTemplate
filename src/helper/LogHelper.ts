@@ -79,11 +79,7 @@ export class LogHelper {
     await this.writeLogToFile(todayFilePath, line);
   }
 
-  /**
-   * Logs informational messages to a file.
-   * @param route API route or function name
-   * @param message Log message
-   */
+  /** Writes an info-level line to today's log file. */
   public static async logInfo(route: string, message: string) {
     try {
       await this.logFile(route, message);
@@ -92,11 +88,7 @@ export class LogHelper {
     }
   }
 
-  /**
-   * Logs Requests to a file (can be adapted to log to DB if needed).
-   * @param route Requested route
-   * @param payload Payload or details of the request (stringified)
-   */
+  /** Writes a request-level line to today's log file. */
   public static async logRequest(route: string, payload: string) {
     try {
       await this.logFile(route, payload, LogSeverity.REQUEST);
@@ -106,10 +98,9 @@ export class LogHelper {
   }
 
   /**
-   * Logs errors/warnings either into a database table (ErrorLog) or console fallback.
-   * @param route API route or function name
-   * @param error Error object or string
-   * @param level 'critical' | 'error' | 'warning'
+   * Writes an error-level line to today's log file and, for WARNING and
+   * above, also inserts it into the ErrorLog table (skipped, with a
+   * one-time warning, if the database isn't configured).
    */
   public static async logError(
     route: string,

@@ -11,11 +11,6 @@ export interface AuthTokenPayload {
   userID: string;
 }
 
-/**
- * Utility class for handling JWT tokens.
- * - Extracts tokens from headers
- * - Verifies tokens and returns payload
- */
 export class JWTToken {
   /**
    * Signs a new JWT for the given userID.

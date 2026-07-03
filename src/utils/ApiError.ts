@@ -2,10 +2,8 @@ import { HTTPCodes } from "./HTTPCodes";
 import { ErrorCode } from "./ErrorCodes";
 
 /**
- * Custom API Error class.
- * - Extends the built-in Error object.
- * - Adds an HTTP status code and a machine-readable error code.
- * - Useful for throwing consistent errors across services and controllers.
+ * Error carrying an HTTP status and a machine-readable code, so it can be
+ * thrown anywhere and turned into a consistent JSON response by errorHandler.
  */
 export class ApiError extends Error {
   public status: HTTPCodes;
