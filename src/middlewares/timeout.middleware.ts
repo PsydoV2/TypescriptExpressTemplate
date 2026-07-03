@@ -5,10 +5,20 @@ import { ErrorCode } from "../utils/ErrorCodes";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
-export function requestTimeout(req: Request, res: Response, next: NextFunction): void {
+export function requestTimeout(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   const timer = setTimeout(() => {
     if (!res.headersSent) {
-      next(new ApiError(HTTPCodes.RequestTimeout, ErrorCode.REQUEST_TIMEOUT, "Request timeout"));
+      next(
+        new ApiError(
+          HTTPCodes.RequestTimeout,
+          ErrorCode.REQUEST_TIMEOUT,
+          "Request timeout",
+        ),
+      );
     }
   }, REQUEST_TIMEOUT_MS);
 

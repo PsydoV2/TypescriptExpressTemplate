@@ -5,7 +5,7 @@ import { DBConnectionPool } from "../config/DBConnectionPool";
 import { HTTPCodes } from "../utils/HTTPCodes";
 import { ApiError } from "../utils/ApiError";
 import { UserRepository } from "../repositories/user.repository";
-import { AuthRepository } from "../repositories/auth.repository";
+import { JWTToken } from "../utils/JWTToken";
 import { DTOUser } from "../types/DTOUser";
 import { ErrorCode } from "../utils/ErrorCodes";
 
@@ -73,7 +73,7 @@ export const AuthService = {
 
       // Generate JWT
       const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
-      const token = AuthRepository.generateJWT(newUser.userID, jwtExpiry);
+      const token = JWTToken.generateAuthToken(newUser.userID, jwtExpiry);
 
       await connection.commit();
 
@@ -116,7 +116,7 @@ export const AuthService = {
 
     // Generate JWT
     const jwtExpiry = env.JWT_EXPIRES_IN as SignOptions["expiresIn"];
-    const token = AuthRepository.generateJWT(user.userID, jwtExpiry);
+    const token = JWTToken.generateAuthToken(user.userID, jwtExpiry);
 
     return {
       token,

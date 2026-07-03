@@ -1,7 +1,7 @@
 import { Router } from "express";
-import {deleteAccount, getUser} from "../controllers/user.controller";
-import {validate} from "../middlewares/validate.middleware";
-import {deleteUserSchema, getUserSchema} from "../schemas/user.schema";
+import { deleteAccount, getUser } from "../controllers/user.controller";
+import { validate } from "../middlewares/validate.middleware";
+import { deleteUserSchema, getUserSchema } from "../schemas/user.schema";
 
 const router = Router();
 

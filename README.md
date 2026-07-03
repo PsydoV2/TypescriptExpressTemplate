@@ -46,6 +46,7 @@ All incoming data is validated through **Zod schemas** before reaching the contr
 - **Correlation ID**: Every log entry includes the `x-request-id` of the triggering request when available. Logs outside a request context (e.g. startup) omit the ID.
 
 Log format:
+
 ```
 2026-03-17T10:23:11.042Z | REQUEST | a3f1b2c4-... | /api/v1/auth/login | {"emailOrUsername":"Test"}
 2026-03-17T10:23:11.118Z | WARNING | a3f1b2c4-... | /api/v1/auth/login | Invalid email/username or password
@@ -86,25 +87,25 @@ Copy `.env.example` to `.env` and fill in your values.
 
 All variables are validated at startup against a Zod schema (`src/config/env.ts`) — the process exits with a readable error if anything required is missing or malformed.
 
-| Variable | Description |
-|---|---|
-| `NODE_ENV` | `development` \| `test` \| `production` (default `development`) |
-| `DBHOST` | MySQL host |
-| `DBPORT` | MySQL port |
-| `DBNAME` | Database name |
-| `DBUSER` | Database user |
-| `DBPASSWORD` | Database password |
-| `SECRETKEYJWT` | Secret key for JWT signing |
-| `JWT_EXPIRES_IN` | JWT expiry duration (e.g. `1h`, `7d`, `100h`, default `100h`) |
-| `HTTPPORT` | HTTP port (default `9080`) |
-| `CORS_ORIGIN` | Allowed CORS origin(s), comma-separated (e.g. `https://example.com`, `*` for development) |
-| `LOG_DIR` | Directory for log files (optional, defaults to `src/../logs`) |
-| `SMTP_HOST` | SMTP server host |
-| `SMTP_PORT` | SMTP server port (default `587`) |
-| `SMTP_SECURE` | `true` for port 465, `false` for STARTTLS (default `false`) |
-| `SMTP_USER` | SMTP auth user |
-| `SMTP_PASS` | SMTP auth password |
-| `SMTP_FROM` | "From" address for outgoing mail (optional, defaults to `SMTP_USER`) |
+| Variable         | Description                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `NODE_ENV`       | `development` \| `test` \| `production` (default `development`)                           |
+| `DBHOST`         | MySQL host                                                                                |
+| `DBPORT`         | MySQL port                                                                                |
+| `DBNAME`         | Database name                                                                             |
+| `DBUSER`         | Database user                                                                             |
+| `DBPASSWORD`     | Database password                                                                         |
+| `SECRETKEYJWT`   | Secret key for JWT signing                                                                |
+| `JWT_EXPIRES_IN` | JWT expiry duration (e.g. `1h`, `7d`, `100h`, default `100h`)                             |
+| `HTTPPORT`       | HTTP port (default `9080`)                                                                |
+| `CORS_ORIGIN`    | Allowed CORS origin(s), comma-separated (e.g. `https://example.com`, `*` for development) |
+| `LOG_DIR`        | Directory for log files (optional, defaults to `src/../logs`)                             |
+| `SMTP_HOST`      | SMTP server host                                                                          |
+| `SMTP_PORT`      | SMTP server port (default `587`)                                                          |
+| `SMTP_SECURE`    | `true` for port 465, `false` for STARTTLS (default `false`)                               |
+| `SMTP_USER`      | SMTP auth user                                                                            |
+| `SMTP_PASS`      | SMTP auth password                                                                        |
+| `SMTP_FROM`      | "From" address for outgoing mail (optional, defaults to `SMTP_USER`)                      |
 
 ---
 
@@ -141,27 +142,31 @@ CREATE TABLE ErrorLog (
 
 All routes are versioned under `/api/v1/`.
 
-| Method | Route | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/register` | — | Register a new user |
-| `POST` | `/api/v1/auth/login` | — | Login, returns a JWT |
-| `DELETE` | `/api/v1/user/deleteAccount` | ✅ | Delete the authenticated user's account |
-| `GET` | `/api/v1/user/getUser` | ✅ | Fetch user data |
-| `GET` | `/api/v1/system/health` | — | Health check (database status) |
+| Method   | Route                        | Auth | Description                             |
+| -------- | ---------------------------- | ---- | --------------------------------------- |
+| `POST`   | `/api/v1/auth/register`      | —    | Register a new user                     |
+| `POST`   | `/api/v1/auth/login`         | —    | Login, returns a JWT                    |
+| `DELETE` | `/api/v1/user/deleteAccount` | ✅   | Delete the authenticated user's account |
+| `GET`    | `/api/v1/user/getUser`       | ✅   | Fetch user data                         |
+| `GET`    | `/api/v1/system/health`      | —    | Health check (database status)          |
 
 ---
 
 ## 🚦 Available Scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Development mode with hot-reload (HTTP, `NODE_ENV=development`) |
-| `npm run build` | Compile TypeScript to `/dist` |
-| `npm run start:local` | Build and start (development) |
-| `npm run start:test` | Build and start (test) |
-| `npm run start:prod` | Build and start (production; terminate TLS upstream, e.g. reverse proxy) |
-| `npm test` | Run Jest unit tests |
-| `npm run test:watch` | Run Jest in watch mode |
+| Script                 | Description                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `npm run dev`          | Development mode with hot-reload (HTTP, `NODE_ENV=development`)          |
+| `npm run build`        | Compile TypeScript to `/dist`                                            |
+| `npm run start:local`  | Build and start (development)                                            |
+| `npm run start:test`   | Build and start (test)                                                   |
+| `npm run start:prod`   | Build and start (production; terminate TLS upstream, e.g. reverse proxy) |
+| `npm test`             | Run Jest unit tests                                                      |
+| `npm run test:watch`   | Run Jest in watch mode                                                   |
+| `npm run lint`         | Check code with ESLint                                                   |
+| `npm run lint:fix`     | Check code with ESLint and auto-fix what it can                          |
+| `npm run format`       | Format the codebase with Prettier                                        |
+| `npm run format:check` | Check formatting without writing changes                                 |
 
 ---
 

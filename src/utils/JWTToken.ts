@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { env } from "../config/env";
 
 export const getSecret = () => env.SECRETKEYJWT;
@@ -17,6 +17,16 @@ export interface AuthTokenPayload {
  * - Verifies tokens and returns payload
  */
 export class JWTToken {
+  /**
+   * Signs a new JWT for the given userID.
+   */
+  static generateAuthToken(
+    userID: string,
+    expiresIn: SignOptions["expiresIn"],
+  ): string {
+    return jwt.sign({ userID }, getSecret(), { expiresIn });
+  }
+
   /**
    * Extracts the JWT token string from an Authorization header.
    * Expects header format: "Bearer <token>"

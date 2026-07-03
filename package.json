@@ -12,7 +12,11 @@
     "start:test": "npm run build && cross-env NODE_ENV=test node dist/index.js",
     "start:prod": "npm run build && cross-env NODE_ENV=production node dist/index.js",
     "test": "jest --detectOpenHandles",
-    "test:watch": "jest --watchAll --detectOpenHandles"
+    "test:watch": "jest --watchAll --detectOpenHandles",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "author": "Psydo",
   "license": "ISC",
@@ -31,6 +35,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/body-parser": "^1.19.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.13",
@@ -41,10 +46,15 @@
     "@types/nodemailer": "^8.0.1",
     "copyfiles": "^2.4.1",
     "cross-env": "^10.0.0",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
     "jest": "^30.4.2",
+    "prettier": "^3.9.4",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1"
   }
 }
