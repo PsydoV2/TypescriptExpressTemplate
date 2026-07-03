@@ -2,10 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { HTTPCodes } from "../utils/HTTPCodes";
 
-/**
- * Controller for user registration.
- * Delegates the request handling to the AuthService.
- */
 export const registerUser = async (
   req: Request,
   res: Response,
@@ -22,10 +18,6 @@ export const registerUser = async (
   }
 };
 
-/**
- * Controller for user login.
- * Delegates the request handling to the AuthService.
- */
 export const loginUser = async (
   req: Request,
   res: Response,

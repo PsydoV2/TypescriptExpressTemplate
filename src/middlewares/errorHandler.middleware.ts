@@ -1,4 +1,3 @@
-// middleware/errorHandler.ts
 import { Request, Response, NextFunction } from "express";
 import { LogHelper, LogSeverity } from "../helper/LogHelper";
 import { HTTPCodes } from "../utils/HTTPCodes";

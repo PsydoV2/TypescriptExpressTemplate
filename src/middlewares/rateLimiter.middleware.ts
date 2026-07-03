@@ -11,7 +11,7 @@ const globalLimiter = new RateLimiterMemory({
 const authLimiter = new RateLimiterMemory({
   keyPrefix: "auth",
   points: 5,
-  duration: 300, // 5 trys in 5 minutes
+  duration: 300, // 5 tries in 5 minutes
   blockDuration: 900, // 15-minute suspension for exceeding the limit
 });
 

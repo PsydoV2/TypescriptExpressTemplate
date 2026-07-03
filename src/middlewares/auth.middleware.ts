@@ -11,7 +11,6 @@ export const authMiddleware = (
   const authHeader = req.headers.authorization;
   const token = JWTToken.extractTokenFromHeader(authHeader);
 
-  // 1. Check if token exists
   if (!token) {
     return res.status(HTTPCodes.Unauthorized).json({
       code: ErrorCode.MISSING_TOKEN,
@@ -19,7 +18,6 @@ export const authMiddleware = (
     });
   }
 
-  // 2. Verify token
   const payload = JWTToken.verifyAuthToken(token);
 
   if (!payload || !payload.userID) {
@@ -29,7 +27,6 @@ export const authMiddleware = (
     });
   }
 
-  // 3. Attach userID
   req.userID = payload.userID;
 
   return next();

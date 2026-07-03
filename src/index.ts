@@ -32,22 +32,15 @@ const startServer = async () => {
   // Correlation ID: must be first so all subsequent logs carry the request ID
   app.use(correlationId);
 
-  // Request timeout: 30s per request
   app.use(requestTimeout);
-
-  // Security middleware
   app.use(helmet());
-
-  // Gzip compression
   app.use(compression());
-
-  // JSON body parser with size limit
   app.use(express.json({ limit: "10kb" }));
 
   // Basic request logger (can be replaced with a proper logger like Winston or Pino)
   app.use(globalRequestLogger);
 
-  // CORS configuration — set CORS_ORIGIN in .env, defaults to * for local development
+  // Comma-separated allowed origins — see CORS_ORIGIN in .env.example
   const allowedOrigins = env.CORS_ORIGIN.split(",");
   app.use(
     cors({
@@ -70,25 +63,18 @@ const startServer = async () => {
     }),
   );
 
-  // Global rate limiting
   app.use(globalRateLimit);
 
-  // Routes (versioned under /api/v1/)
   app.use("/api/v1/system/", systemRoutes);
   app.use("/api/v1/auth/", authRateLimit, authRoutes);
   app.use("/api/v1/user/", authMiddleware, userRoutes);
 
-  // Fallbacks
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  // Ports
   const HTTPPORT = env.HTTPPORT;
 
-  /**
-   * Start HTTP Server (use HTTPS Proxy in Production)
-   */
-
+  // Plain HTTP; terminate TLS upstream (reverse proxy / load balancer) in production.
   const httpServer = http.createServer(app);
   // TCP-level safety net: close idle/stale connections after 60s
   httpServer.setTimeout(60_000);
@@ -96,7 +82,6 @@ const startServer = async () => {
     console.log(`🚀 API (HTTP) running on port ${HTTPPORT}`);
   });
 
-  // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received — shutting down gracefully...`);
     httpServer.close(async () => {

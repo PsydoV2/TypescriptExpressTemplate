@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Gemeinsame Passwort-Regel
 const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters long")

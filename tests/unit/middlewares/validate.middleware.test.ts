@@ -31,14 +31,13 @@ describe("validate Middleware", () => {
   });
 
   it("should call next(error) if data is invalid", async () => {
-    mockRequest = { body: { name: "ab" } }; // Zu kurz
+    mockRequest = { body: { name: "ab" } }; // shorter than the schema's min(3)
     await validate(testSchema)(
       mockRequest as Request,
       mockResponse as Response,
       nextFunction,
     );
 
-    // Es sollte mit einem ApiError aufgerufen werden
     expect(nextFunction).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 400,
