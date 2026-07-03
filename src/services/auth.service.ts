@@ -6,7 +6,7 @@ import { HTTPCodes } from "../utils/HTTPCodes";
 import { ApiError } from "../utils/ApiError";
 import { UserRepository } from "../repositories/user.repository";
 import { AuthRepository } from "../repositories/auth.repository";
-import { DTOUser } from "../types/User/user";
+import { DTOUser } from "../types/DTOUser";
 import { ErrorCode } from "../utils/ErrorCodes";
 
 export const AuthService = {

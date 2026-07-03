@@ -22,7 +22,7 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
         const result = await UserService.getUser(userID);
 
         return res.status(HTTPCodes.OK).json(result);
-    }catch (error: any) {
+    } catch (error) {
         next(error);
     }
 }
