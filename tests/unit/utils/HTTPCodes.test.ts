@@ -7,4 +7,3 @@ describe("HTTPCodes", () => {
     expect(HTTPCodes.InternalServerError).toBe(500);
   });
 });
-

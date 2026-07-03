@@ -16,4 +16,3 @@ describe("ApiError", () => {
     expect(err.message).toBe("bad request");
   });
 });
-
