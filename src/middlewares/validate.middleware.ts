@@ -26,7 +26,7 @@ export const validate =
         new ApiError(
           HTTPCodes.BadRequest,
           ErrorCode.MISSING_PARAMETERS,
-          result.error.issues[0].message,
+          result.error.issues[0]?.message ?? "Invalid request",
         ),
       );
     }
