@@ -1,6 +1,6 @@
 import { EmailHelper } from "../helper/EmailHelper";
 import { SystemRepository } from "../repositories/system.repository";
-import DTOSystemHealth from "../types/DTOSystemHealth";
+import { DTOSystemHealth } from "../types/DTOSystemHealth";
 
 export const SystemService = {
   async health(): Promise<DTOSystemHealth> {

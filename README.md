@@ -1,4 +1,4 @@
-# Express + TypeScript Backend Template v2.1
+# Express + TypeScript Backend Template
 
 A professional, scalable backend template built with **Express** and **TypeScript**. Focuses on a strict **Service-Repository pattern**, type-safe **Zod validation**, and a robust logging system.
 
@@ -62,7 +62,7 @@ Every request gets a unique ID (`x-request-id`):
 ### 5. Security
 
 - `helmet` — HTTP security headers
-- `bcrypt` (10 rounds) — password hashing
+- `argon2id` — password hashing (OWASP-recommended)
 - JWT authentication — token-based auth with configurable expiry via `JWT_EXPIRES_IN`
 - Rate limiting — global (100 req/60s) and auth-specific (5 attempts/5 min, 15 min block)
 - Zod — input validation on all endpoints
@@ -84,20 +84,27 @@ On `SIGTERM` or `SIGINT` (e.g. Kubernetes, Docker, Ctrl+C):
 
 Copy `.env.example` to `.env` and fill in your values.
 
+All variables are validated at startup against a Zod schema (`src/config/env.ts`) — the process exits with a readable error if anything required is missing or malformed.
+
 | Variable | Description |
 |---|---|
+| `NODE_ENV` | `development` \| `test` \| `production` (default `development`) |
 | `DBHOST` | MySQL host |
 | `DBPORT` | MySQL port |
 | `DBNAME` | Database name |
 | `DBUSER` | Database user |
 | `DBPASSWORD` | Database password |
 | `SECRETKEYJWT` | Secret key for JWT signing |
-| `JWT_EXPIRES_IN` | JWT expiry duration (e.g. `1h`, `7d`, `100h`) |
-| `HTTPPORT` | HTTP port (development) |
-| `HTTPSPORT` | HTTPS port (production) |
-| `CERTKEYPATH` | Path to TLS private key |
-| `CERTPATH` | Path to TLS certificate |
-| `CORS_ORIGIN` | Allowed CORS origin (e.g. `https://example.com`, `*` for development) |
+| `JWT_EXPIRES_IN` | JWT expiry duration (e.g. `1h`, `7d`, `100h`, default `100h`) |
+| `HTTPPORT` | HTTP port (default `9080`) |
+| `CORS_ORIGIN` | Allowed CORS origin(s), comma-separated (e.g. `https://example.com`, `*` for development) |
+| `LOG_DIR` | Directory for log files (optional, defaults to `src/../logs`) |
+| `SMTP_HOST` | SMTP server host |
+| `SMTP_PORT` | SMTP server port (default `587`) |
+| `SMTP_SECURE` | `true` for port 465, `false` for STARTTLS (default `false`) |
+| `SMTP_USER` | SMTP auth user |
+| `SMTP_PASS` | SMTP auth password |
+| `SMTP_FROM` | "From" address for outgoing mail (optional, defaults to `SMTP_USER`) |
 
 ---
 
@@ -152,7 +159,7 @@ All routes are versioned under `/api/v1/`.
 | `npm run build` | Compile TypeScript to `/dist` |
 | `npm run start:local` | Build and start (development) |
 | `npm run start:test` | Build and start (test) |
-| `npm run start:prod` | Build and start (production, HTTPS) |
+| `npm run start:prod` | Build and start (production; terminate TLS upstream, e.g. reverse proxy) |
 | `npm test` | Run Jest unit tests |
 | `npm run test:watch` | Run Jest in watch mode |
 

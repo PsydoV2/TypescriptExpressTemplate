@@ -20,8 +20,15 @@ const createMiddleware = (limiter: RateLimiterMemory) => {
     try {
       await limiter.consume(req.ip || "unknown");
       next();
-    } catch (err: any) {
-      const retrySecs = Math.ceil(err.msBeforeNext / 1000) || 1;
+    } catch (err: unknown) {
+      const msBeforeNext =
+        typeof err === "object" &&
+        err !== null &&
+        "msBeforeNext" in err &&
+        typeof (err as { msBeforeNext: unknown }).msBeforeNext === "number"
+          ? (err as { msBeforeNext: number }).msBeforeNext
+          : 0;
+      const retrySecs = Math.ceil(msBeforeNext / 1000) || 1;
       res.set("Retry-After", String(retrySecs));
       return res.status(HTTPCodes.TooManyRequests).json({
         message: `Too many requests. Please try again in ${retrySecs} seconds.`,

@@ -1,6 +1,6 @@
 import { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { DBConnectionPool } from "../config/DBConnectionPool";
-import { DTOUser, DTOUserPublic } from "../types/User/user";
+import { DTOUser, DTOUserPublic } from "../types/DTOUser";
 
 /** A pool or a checked-out connection (used inside transactions). */
 type DBExecutor = Pool | PoolConnection;

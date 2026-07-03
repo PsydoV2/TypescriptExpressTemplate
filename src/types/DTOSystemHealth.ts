@@ -1,4 +1,4 @@
-export default interface DTOSystemHealth {
+export interface DTOSystemHealth {
   status: "UP" | "DOWN";
   timestamp: string;
   services: {
