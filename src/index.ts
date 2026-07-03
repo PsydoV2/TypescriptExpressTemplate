@@ -23,6 +23,23 @@ import { requestTimeout } from "./middlewares/timeout.middleware";
 import { ApiError } from "./utils/ApiError";
 import { ErrorCode } from "./utils/ErrorCodes";
 import { HTTPCodes } from "./utils/HTTPCodes";
+import { LogHelper, LogSeverity } from "./helper/LogHelper";
+
+// A rejected promise with no .catch() is a bug, but the server itself is
+// still in a known state, so log it and keep serving requests.
+process.on("unhandledRejection", (reason) => {
+  void LogHelper.logError("unhandledRejection", reason, LogSeverity.CRITICAL);
+});
+
+// An uncaught throw leaves the process in an unknown state — log it and
+// exit so the process manager (systemd, Docker, PM2, ...) can restart it.
+process.on("uncaughtException", (err) => {
+  void LogHelper.logError(
+    "uncaughtException",
+    err,
+    LogSeverity.CRITICAL,
+  ).finally(() => process.exit(1));
+});
 
 const startServer = async () => {
   const app = express();
