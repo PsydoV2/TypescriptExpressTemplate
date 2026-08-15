@@ -10,16 +10,16 @@ jest.mock("node:fs/promises", () => ({
   constants: { W_OK: 2 },
 }));
 
-jest.mock("../../../src/config/env", () => ({
+jest.mock("../../../src/config/env.config", () => ({
   env: { LOG_DIR: undefined },
 }));
 
-jest.mock("../../../src/config/DBConnectionPool", () => ({
+jest.mock("../../../src/config/db.config", () => ({
   DBConnectionPool: { getConnection: jest.fn() },
   isDBConfigured: jest.fn(),
 }));
 
-jest.mock("../../../src/utils/RequestContext", () => ({
+jest.mock("../../../src/utils/requestContext.util", () => ({
   getRequestId: jest.fn(() => undefined),
 }));
 
@@ -34,8 +34,8 @@ describe("LogHelper", () => {
     DBConnectionPool: { getConnection: jest.Mock };
     isDBConfigured: jest.Mock;
   };
-  let LogHelper: typeof import("../../../src/helper/LogHelper").LogHelper;
-  let LogSeverity: typeof import("../../../src/helper/LogHelper").LogSeverity;
+  let LogHelper: typeof import("../../../src/helper/log.helper").LogHelper;
+  let LogSeverity: typeof import("../../../src/helper/log.helper").LogSeverity;
 
   beforeEach(() => {
     jest.resetModules();
@@ -47,13 +47,13 @@ describe("LogHelper", () => {
     fsp.access.mockResolvedValue(undefined);
     fsp.appendFile.mockResolvedValue(undefined);
 
-    envModule = require("../../../src/config/env");
+    envModule = require("../../../src/config/env.config");
     envModule.env.LOG_DIR = undefined;
 
-    dbModule = require("../../../src/config/DBConnectionPool");
+    dbModule = require("../../../src/config/db.config");
     dbModule.isDBConfigured.mockReturnValue(false);
 
-    ({ LogHelper, LogSeverity } = require("../../../src/helper/LogHelper"));
+    ({ LogHelper, LogSeverity } = require("../../../src/helper/log.helper"));
   });
 
   it("writes to a per-severity subdirectory: logs/<severity>/<date>.log", async () => {

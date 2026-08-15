@@ -1,16 +1,16 @@
 import argon2 from "argon2";
 import { SignOptions } from "jsonwebtoken";
-import { env } from "../config/env";
-import { DBConnectionPool } from "../config/DBConnectionPool";
+import { env } from "../config/env.config";
+import { DBConnectionPool } from "../config/db.config";
 import { EMAIL_FROM } from "../config/email.config";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ApiError } from "../utils/ApiError";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ApiError } from "../utils/apiError.util";
 import { UserRepository } from "../repositories/user.repository";
 import { RefreshTokenRepository } from "../repositories/refreshToken.repository";
-import { JWTToken } from "../utils/JWTToken";
-import { EmailHelper } from "../helper/EmailHelper";
+import { JWTToken } from "../utils/jwtToken.util";
+import { EmailHelper } from "../helper/email.helper";
 import { DTOUser } from "../types/DTOUser";
-import { ErrorCode } from "../utils/ErrorCodes";
+import { ErrorCode } from "../utils/errorCodes.util";
 
 async function sendWelcomeEmail(username: string, email: string) {
   try {

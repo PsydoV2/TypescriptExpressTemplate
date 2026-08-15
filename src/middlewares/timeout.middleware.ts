@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { ApiError } from "../utils/ApiError";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ErrorCode } from "../utils/ErrorCodes";
+import { ApiError } from "../utils/apiError.util";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ErrorCode } from "../utils/errorCodes.util";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 

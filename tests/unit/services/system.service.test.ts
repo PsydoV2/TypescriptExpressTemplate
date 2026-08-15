@@ -1,11 +1,11 @@
 import { SystemService } from "../../../src/services/system.service";
 import { SystemRepository } from "../../../src/repositories/system.repository";
-import { EmailHelper } from "../../../src/helper/EmailHelper";
-import { getDBPoolStats } from "../../../src/config/DBConnectionPool";
+import { EmailHelper } from "../../../src/helper/email.helper";
+import { getDBPoolStats } from "../../../src/config/db.config";
 
 jest.mock("../../../src/repositories/system.repository");
-jest.mock("../../../src/helper/EmailHelper");
-jest.mock("../../../src/config/DBConnectionPool", () => ({
+jest.mock("../../../src/helper/email.helper");
+jest.mock("../../../src/config/db.config", () => ({
   getDBPoolStats: jest.fn(),
 }));
 

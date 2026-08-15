@@ -3,8 +3,8 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { promisify } from "node:util";
 import cron from "node-cron";
-import { AppConfig } from "../config/appConfig";
-import { LogHelper, LogSeverity } from "../helper/LogHelper";
+import { AppConfig } from "../config/app.config";
+import { LogHelper, LogSeverity } from "../helper/log.helper";
 
 const gzip = promisify(zlib.gzip);
 

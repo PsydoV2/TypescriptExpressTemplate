@@ -1,5 +1,5 @@
 import { correlationId } from "../../../src/middlewares/correlationId.middleware";
-import { getRequestMeta } from "../../../src/utils/RequestContext";
+import { getRequestMeta } from "../../../src/utils/requestContext.util";
 import { Request, Response, NextFunction } from "express";
 
 describe("correlationId Middleware", () => {

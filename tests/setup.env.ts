@@ -1,6 +1,6 @@
 /**
  * Jest setup: provide deterministic environment variables before any module
- * (and therefore src/config/env.ts) is imported. Values already present in the
+ * (and therefore src/config/env.config.ts) is imported. Values already present in the
  * environment are respected, so CI can still override them.
  */
 const defaults: Record<string, string> = {

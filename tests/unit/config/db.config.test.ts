@@ -1,7 +1,7 @@
 import {
   DBConnectionPool,
   getDBPoolStats,
-} from "../../../src/config/DBConnectionPool";
+} from "../../../src/config/db.config";
 
 type CorePool = { _allConnections?: unknown; _freeConnections?: unknown };
 

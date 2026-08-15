@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { LogHelper, LogSeverity } from "../helper/LogHelper";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ApiError } from "../utils/ApiError";
-import { ErrorCode } from "../utils/ErrorCodes";
+import { LogHelper, LogSeverity } from "../helper/log.helper";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ApiError } from "../utils/apiError.util";
+import { ErrorCode } from "../utils/errorCodes.util";
 
 export async function errorHandler(
   err: unknown,

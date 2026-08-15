@@ -1,14 +1,14 @@
 import { AuthService } from "../../../src/services/auth.service";
 import { UserRepository } from "../../../src/repositories/user.repository";
 import { RefreshTokenRepository } from "../../../src/repositories/refreshToken.repository";
-import { EmailHelper } from "../../../src/helper/EmailHelper";
-import { ApiError } from "../../../src/utils/ApiError";
-import { DBConnectionPool } from "../../../src/config/DBConnectionPool";
+import { EmailHelper } from "../../../src/helper/email.helper";
+import { ApiError } from "../../../src/utils/apiError.util";
+import { DBConnectionPool } from "../../../src/config/db.config";
 
 jest.mock("../../../src/repositories/user.repository");
 jest.mock("../../../src/repositories/refreshToken.repository");
-jest.mock("../../../src/helper/EmailHelper");
-jest.mock("../../../src/config/DBConnectionPool", () => ({
+jest.mock("../../../src/helper/email.helper");
+jest.mock("../../../src/config/db.config", () => ({
   DBConnectionPool: {
     getConnection: jest.fn().mockResolvedValue({
       beginTransaction: jest.fn(),
@@ -187,7 +187,7 @@ describe("AuthService.requestPasswordReset", () => {
 
 describe("AuthService.resetPassword", () => {
   it("updates the password for a valid reset token", async () => {
-    const { JWTToken } = jest.requireActual("../../../src/utils/JWTToken");
+    const { JWTToken } = jest.requireActual("../../../src/utils/jwtToken.util");
     process.env.SECRETKEYJWT = "test-secret";
     const token = JWTToken.generatePasswordResetToken("user-1", "30m");
 

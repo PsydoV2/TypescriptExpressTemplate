@@ -1,5 +1,5 @@
-import { DBConnectionPool } from "../config/DBConnectionPool";
-import { LogHelper, LogSeverity } from "../helper/LogHelper";
+import { DBConnectionPool } from "../config/db.config";
+import { LogHelper, LogSeverity } from "../helper/log.helper";
 
 export const SystemRepository = {
   async checkDatabaseHealth(): Promise<boolean> {

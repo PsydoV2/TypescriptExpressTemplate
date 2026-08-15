@@ -1,5 +1,5 @@
 // Import the validated env first so misconfiguration fails fast at startup.
-import { env } from "./config/env";
+import { env } from "./config/env.config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -18,13 +18,13 @@ import {
 } from "./middlewares/rateLimiter.middleware";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import systemRoutes from "./routes/system.routes";
-import { DBConnectionPool } from "./config/DBConnectionPool";
+import { DBConnectionPool } from "./config/db.config";
 import { requestTimeout } from "./middlewares/timeout.middleware";
-import { ApiError } from "./utils/ApiError";
-import { ErrorCode } from "./utils/ErrorCodes";
-import { HTTPCodes } from "./utils/HTTPCodes";
-import { LogHelper, LogSeverity } from "./helper/LogHelper";
-import { scheduleLogRetention } from "./jobs/logRetention";
+import { ApiError } from "./utils/apiError.util";
+import { ErrorCode } from "./utils/errorCodes.util";
+import { HTTPCodes } from "./utils/httpCodes.util";
+import { LogHelper, LogSeverity } from "./helper/log.helper";
+import { scheduleLogRetention } from "./jobs/logRetention.job";
 
 // A rejected promise with no .catch() is a bug, but the server itself is
 // still in a known state, so log it and keep serving requests.

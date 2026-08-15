@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { JWTToken } from "../../../src/utils/JWTToken";
+import { JWTToken } from "../../../src/utils/jwtToken.util";
 
 describe("JWTToken.extractTokenFromHeader", () => {
   it("returns the token for a valid Bearer header", () => {

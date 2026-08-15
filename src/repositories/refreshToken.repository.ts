@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
-import { DBConnectionPool } from "../config/DBConnectionPool";
-import { env } from "../config/env";
+import { DBConnectionPool } from "../config/db.config";
+import { env } from "../config/env.config";
 
 type DBExecutor = Pool | PoolConnection;
 

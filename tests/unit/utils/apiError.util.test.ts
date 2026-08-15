@@ -1,6 +1,6 @@
-import { ApiError } from "../../../src/utils/ApiError";
-import { HTTPCodes } from "../../../src/utils/HTTPCodes";
-import { ErrorCode } from "../../../src/utils/ErrorCodes";
+import { ApiError } from "../../../src/utils/apiError.util";
+import { HTTPCodes } from "../../../src/utils/httpCodes.util";
+import { ErrorCode } from "../../../src/utils/errorCodes.util";
 
 describe("ApiError", () => {
   it("sets status, code and message", () => {

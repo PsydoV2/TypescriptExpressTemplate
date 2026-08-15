@@ -1,5 +1,5 @@
-import { HTTPCodes } from "./HTTPCodes";
-import { ErrorCode } from "./ErrorCodes";
+import { HTTPCodes } from "./httpCodes.util";
+import { ErrorCode } from "./errorCodes.util";
 
 /**
  * Error carrying an HTTP status and a machine-readable code, so it can be

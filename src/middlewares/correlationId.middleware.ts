@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import crypto from "node:crypto";
-import { runWithRequestId } from "../utils/RequestContext";
+import { runWithRequestId } from "../utils/requestContext.util";
 
 /**
  * Assigns each request a correlation ID and stores it in AsyncLocalStorage,

@@ -1,4 +1,4 @@
-import { HTTPCodes } from "../../../src/utils/HTTPCodes";
+import { HTTPCodes } from "../../../src/utils/httpCodes.util";
 
 describe("HTTPCodes", () => {
   it("maps common status codes correctly", () => {

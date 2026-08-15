@@ -1,11 +1,11 @@
 import { errorHandler } from "../../../src/middlewares/errorHandler.middleware";
-import { ApiError } from "../../../src/utils/ApiError";
-import { LogHelper } from "../../../src/helper/LogHelper";
-import { HTTPCodes } from "../../../src/utils/HTTPCodes";
-import { ErrorCode } from "../../../src/utils/ErrorCodes";
+import { ApiError } from "../../../src/utils/apiError.util";
+import { LogHelper } from "../../../src/helper/log.helper";
+import { HTTPCodes } from "../../../src/utils/httpCodes.util";
+import { ErrorCode } from "../../../src/utils/errorCodes.util";
 import { Request, Response, NextFunction } from "express";
 
-jest.mock("../../../src/helper/LogHelper");
+jest.mock("../../../src/helper/log.helper");
 
 describe("errorHandler Middleware", () => {
   let mockRequest: Partial<Request>;

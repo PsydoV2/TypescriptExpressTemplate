@@ -1,6 +1,6 @@
 import { NextFunction, Response, Request } from "express";
 import { SystemService } from "../services/system.service";
-import { HTTPCodes } from "../utils/HTTPCodes";
+import { HTTPCodes } from "../utils/httpCodes.util";
 import { DTOSystemHealth } from "../types/DTOSystemHealth";
 
 export const health = async (

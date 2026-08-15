@@ -3,7 +3,7 @@ import {
   getRequestId,
   setRequestIdentity,
   getRequestMeta,
-} from "../../../src/utils/RequestContext";
+} from "../../../src/utils/requestContext.util";
 
 describe("RequestContext", () => {
   it("defaults ip to 'unknown' and identity to 'anonymous' when no initial ip is given", () => {

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import { HTTPCodes } from "../utils/HTTPCodes";
+import { HTTPCodes } from "../utils/httpCodes.util";
 
 export const registerUser = async (
   req: Request,

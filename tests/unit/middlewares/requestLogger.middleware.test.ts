@@ -1,9 +1,9 @@
 import { EventEmitter } from "node:events";
 import { globalRequestLogger } from "../../../src/middlewares/requestLogger.middleware";
-import { LogHelper } from "../../../src/helper/LogHelper";
+import { LogHelper } from "../../../src/helper/log.helper";
 import { Request, Response, NextFunction } from "express";
 
-jest.mock("../../../src/helper/LogHelper", () => ({
+jest.mock("../../../src/helper/log.helper", () => ({
   LogHelper: { logRequest: jest.fn(), logError: jest.fn() },
   LogSeverity: { WARNING: "warning" },
 }));

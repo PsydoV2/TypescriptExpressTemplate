@@ -1,5 +1,5 @@
 import mysql, { Pool } from "mysql2/promise";
-import { env } from "./env";
+import { env } from "./env.config";
 
 export const isDBConfigured = () =>
   !!(env.DBHOST && env.DBPORT && env.DBNAME && env.DBUSER && env.DBPASSWORD);

@@ -1,9 +1,9 @@
 import { authMiddleware } from "../../../src/middlewares/auth.middleware";
-import { JWTToken } from "../../../src/utils/JWTToken";
+import { JWTToken } from "../../../src/utils/jwtToken.util";
 import {
   runWithRequestId,
   getRequestMeta,
-} from "../../../src/utils/RequestContext";
+} from "../../../src/utils/requestContext.util";
 import { Request, Response, NextFunction } from "express";
 import "express";
 

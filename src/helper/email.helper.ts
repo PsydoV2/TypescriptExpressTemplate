@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { emailTransporter, EMAIL_FROM } from "../config/email.config";
-import { LogHelper, LogSeverity } from "./LogHelper";
+import { LogHelper, LogSeverity } from "./log.helper";
 
 type TemplateVariables = Record<string, string>;
 

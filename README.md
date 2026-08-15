@@ -69,7 +69,7 @@ logs/
 └── critical/
 ```
 
-**Log retention** (`src/jobs/logRetention.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) walks each severity subdirectory of the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rules`:
+**Log retention** (`src/jobs/logRetention.job.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) walks each severity subdirectory of the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rules`:
 
 - compresses `.log` files older than `compressAfterDays` to `.log.gz`
 - deletes `.log.gz` files older than `deleteAfterDays`
@@ -124,7 +124,7 @@ On `SIGTERM` or `SIGINT` (e.g. Kubernetes, Docker, Ctrl+C):
 
 Copy `.env.example` to `.env` and fill in your values.
 
-All variables are validated at startup against a Zod schema (`src/config/env.ts`) — the process exits with a readable error if anything required is missing or malformed.
+All variables are validated at startup against a Zod schema (`src/config/env.config.ts`) — the process exits with a readable error if anything required is missing or malformed.
 
 | Variable                            | Description                                                                               |
 | ----------------------------------- | ----------------------------------------------------------------------------------------- |

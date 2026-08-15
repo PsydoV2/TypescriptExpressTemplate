@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodSchema } from "zod";
-import { ApiError } from "../utils/ApiError";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ErrorCode } from "../utils/ErrorCodes";
+import { ApiError } from "../utils/apiError.util";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ErrorCode } from "../utils/errorCodes.util";
 
 /**
  * Validates the request against a Zod schema describing the

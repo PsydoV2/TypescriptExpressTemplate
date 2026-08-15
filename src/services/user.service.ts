@@ -1,8 +1,8 @@
 import { UserRepository } from "../repositories/user.repository";
-import { DBConnectionPool } from "../config/DBConnectionPool";
-import { ApiError } from "../utils/ApiError";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ErrorCode } from "../utils/ErrorCodes";
+import { DBConnectionPool } from "../config/db.config";
+import { ApiError } from "../utils/apiError.util";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ErrorCode } from "../utils/errorCodes.util";
 
 export const UserService = {
   async deleteUser(userID: string) {

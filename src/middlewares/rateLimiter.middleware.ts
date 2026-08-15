@@ -1,6 +1,6 @@
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import { Request, Response, NextFunction } from "express";
-import { HTTPCodes } from "../utils/HTTPCodes";
+import { HTTPCodes } from "../utils/httpCodes.util";
 
 const globalLimiter = new RateLimiterMemory({
   keyPrefix: "global",

@@ -3,8 +3,8 @@ import {
   planRetentionActions,
   processSeverityDir,
   runLogRetention,
-} from "../../../src/jobs/logRetention";
-import { LogHelper } from "../../../src/helper/LogHelper";
+} from "../../../src/jobs/logRetention.job";
+import { LogHelper } from "../../../src/helper/log.helper";
 
 jest.mock("node:fs", () => ({
   promises: {
@@ -21,8 +21,8 @@ jest.mock("node:zlib", () => ({
   ),
 }));
 
-jest.mock("../../../src/helper/LogHelper", () => {
-  const actual = jest.requireActual("../../../src/helper/LogHelper");
+jest.mock("../../../src/helper/log.helper", () => {
+  const actual = jest.requireActual("../../../src/helper/log.helper");
   return {
     ...actual,
     LogHelper: { getBaseLogDir: jest.fn(), logError: jest.fn() },

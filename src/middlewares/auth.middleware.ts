@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { HTTPCodes } from "../utils/HTTPCodes";
-import { ErrorCode } from "../utils/ErrorCodes";
-import { JWTToken } from "../utils/JWTToken";
-import { setRequestIdentity } from "../utils/RequestContext";
+import { HTTPCodes } from "../utils/httpCodes.util";
+import { ErrorCode } from "../utils/errorCodes.util";
+import { JWTToken } from "../utils/jwtToken.util";
+import { setRequestIdentity } from "../utils/requestContext.util";
 
 export const authMiddleware = (
   req: Request,

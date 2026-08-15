@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { LogHelper, LogSeverity } from "../helper/LogHelper";
+import { LogHelper, LogSeverity } from "../helper/log.helper";
 
 const SENSITIVE_FIELDS = new Set([
   "password",

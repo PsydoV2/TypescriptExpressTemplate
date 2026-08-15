@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { UserService } from "../services/user.service";
-import { HTTPCodes } from "../utils/HTTPCodes";
+import { HTTPCodes } from "../utils/httpCodes.util";
 
 export const deleteAccount = async (
   req: Request,
