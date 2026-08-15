@@ -23,10 +23,20 @@ function redactSensitiveFields(
 
 export const globalRequestLogger = async (
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction,
 ): Promise<void> => {
+  // CORS preflight: no body, no auth, always the same noise — skip logging.
+  if (req.method === "OPTIONS") {
+    next();
+    return;
+  }
+
   try {
+    // req.path gets rewritten once Express mounts into a sub-router (e.g.
+    // /api/v1/admin/foo -> /foo inside that router's own middleware);
+    // originalUrl is immune to that. Captured now, before any rewriting.
+    const route = req.originalUrl || req.path;
     let payload: string;
 
     if (req.method === "GET") {
@@ -37,7 +47,11 @@ export const globalRequestLogger = async (
       payload = req.body ? JSON.stringify(redactSensitiveFields(req.body)) : "";
     }
 
-    await LogHelper.logRequest(req.path, payload);
+    // Log once the response is actually sent, so the line can include the
+    // real status code.
+    res.on("finish", () => {
+      void LogHelper.logRequest(route, `status=${res.statusCode} | ${payload}`);
+    });
   } catch (error) {
     console.error("Error in globalRequestLogger:", error);
     await LogHelper.logError(
