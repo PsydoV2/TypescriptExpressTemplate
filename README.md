@@ -10,15 +10,17 @@ Requires Node.js **>= 20**.
 
 ```text
 src/
-├── config/             # DB Pool & system configurations
+├── config/             # DB Pool, env, and app-wide tunable constants (AppConfig)
 ├── controllers/        # Express route handlers (Request/Response)
+├── helper/              # LogHelper, EmailHelper
+├── jobs/                # Scheduled/background jobs (log retention, ...)
 ├── middlewares/        # Auth, Error, Rate Limiting, Zod Validation, Correlation ID
 ├── repositories/       # Data Access Layer (SQL queries)
 ├── routes/             # API Route definitions
 ├── schemas/            # Zod validation schemas (single source of truth)
 ├── services/           # Business logic & transaction management
 ├── types/              # TypeScript interfaces/DTOs
-├── utils/              # Helpers (ApiError, LogHelper, JWT, RequestContext)
+├── utils/              # ApiError, JWT, RequestContext
 └── index.ts            # Entry point
 ```
 
@@ -53,6 +55,26 @@ Log format:
 2026-03-17T10:23:11.042Z | REQUEST | a3f1b2c4-... | ip=203.0.113.5 | identity=anonymous | /api/v1/auth/login | {"emailOrUsername":"Test"}
 2026-03-17T10:23:11.118Z | WARNING | a3f1b2c4-... | ip=203.0.113.5 | identity=anonymous | /api/v1/auth/login | Invalid email/username or password
 ```
+
+**Log directory layout:**
+
+```
+logs/
+├── request/
+│   ├── 2026-08-08.log.gz   # compressed by the retention job (see below)
+│   └── 2026-08-15.log
+├── info/
+├── warning/
+├── error/
+└── critical/
+```
+
+**Log retention** (`src/jobs/logRetention.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) walks each severity subdirectory of the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rules`:
+
+- compresses `.log` files older than `compressAfterDays` to `.log.gz`
+- deletes `.log.gz` files older than `deleteAfterDays`
+
+Retention thresholds differ per severity — request logs are high-volume and short-lived, critical logs are kept much longer for incident analysis. A module-level guard skips (and warns about) a run if the previous one hasn't finished yet. Wired up automatically at startup via `scheduleLogRetention()` in `src/index.ts`.
 
 ### 4. Correlation ID
 

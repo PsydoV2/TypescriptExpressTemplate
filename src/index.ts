@@ -24,6 +24,7 @@ import { ApiError } from "./utils/ApiError";
 import { ErrorCode } from "./utils/ErrorCodes";
 import { HTTPCodes } from "./utils/HTTPCodes";
 import { LogHelper, LogSeverity } from "./helper/LogHelper";
+import { scheduleLogRetention } from "./jobs/logRetention";
 
 // A rejected promise with no .catch() is a bug, but the server itself is
 // still in a known state, so log it and keep serving requests.
@@ -98,6 +99,8 @@ const startServer = async () => {
   httpServer.listen(HTTPPORT, () => {
     console.log(`🚀 API (HTTP) running on port ${HTTPPORT}`);
   });
+
+  await scheduleLogRetention();
 
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received — shutting down gracefully...`);
