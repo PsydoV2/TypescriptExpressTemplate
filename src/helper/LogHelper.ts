@@ -2,7 +2,7 @@ import { DBConnectionPool, isDBConfigured } from "../config/DBConnectionPool";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { env } from "../config/env";
-import { getRequestId } from "../utils/RequestContext";
+import { getRequestId, getRequestMeta } from "../utils/RequestContext";
 
 export const LogSeverity = {
   CRITICAL: "critical",
@@ -120,7 +120,11 @@ export class LogHelper {
     severity: LogSeverity = LogSeverity.INFO,
   ) {
     const requestId = getRequestId();
-    const requestIdPart = requestId ? ` | ${requestId}` : "";
+    let requestIdPart = "";
+    if (requestId) {
+      const { ip, identity } = getRequestMeta();
+      requestIdPart = ` | ${requestId} | ip=${ip} | identity=${identity}`;
+    }
     return (
       `${this.getTodayDateTime()} | ${severity.toUpperCase()}${requestIdPart} | ${route} | ` +
       `${String(message).replace(/\s+/g, " ").trim()}\n`

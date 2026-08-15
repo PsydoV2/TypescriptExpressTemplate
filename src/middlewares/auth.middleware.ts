@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { HTTPCodes } from "../utils/HTTPCodes";
 import { ErrorCode } from "../utils/ErrorCodes";
 import { JWTToken } from "../utils/JWTToken";
+import { setRequestIdentity } from "../utils/RequestContext";
 
 export const authMiddleware = (
   req: Request,
@@ -28,6 +29,11 @@ export const authMiddleware = (
   }
 
   req.userID = payload.userID;
+  // This template only has one actor type (regular users), so this is the
+  // only call site. A template extended with additional actor types (e.g.
+  // an admin or service-account auth middleware) would call
+  // setRequestIdentity the same way from its own middleware.
+  setRequestIdentity(`user:${payload.userID}`);
 
   return next();
 };

@@ -1,5 +1,9 @@
 import { authMiddleware } from "../../../src/middlewares/auth.middleware";
 import { JWTToken } from "../../../src/utils/JWTToken";
+import {
+  runWithRequestId,
+  getRequestMeta,
+} from "../../../src/utils/RequestContext";
 import { Request, Response, NextFunction } from "express";
 import "express";
 
@@ -53,5 +57,23 @@ describe("authMiddleware", () => {
 
     expect(nextFunction).toHaveBeenCalled();
     expect(mockRequest.userID).toBe("user-123");
+  });
+
+  it("sets the request identity once the token is verified", () => {
+    jest
+      .spyOn(JWTToken, "extractTokenFromHeader")
+      .mockReturnValue("valid-token");
+    jest
+      .spyOn(JWTToken, "verifyAuthToken")
+      .mockReturnValue({ userID: "user-123" });
+
+    let identitySeen: string | undefined;
+    runWithRequestId("req-1", () => {
+      authMiddleware(mockRequest as Request, mockResponse as Response, () => {
+        identitySeen = getRequestMeta().identity;
+      });
+    });
+
+    expect(identitySeen).toBe("user:user-123");
   });
 });

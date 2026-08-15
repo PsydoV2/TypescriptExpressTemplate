@@ -17,5 +17,5 @@ export const correlationId = (
     typeof incoming === "string" && incoming ? incoming : crypto.randomUUID();
   req.headers["x-request-id"] = id;
   res.setHeader("x-request-id", id);
-  runWithRequestId(id, next);
+  runWithRequestId(id, next, { ip: req.ip || "unknown" });
 };

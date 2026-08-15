@@ -45,22 +45,23 @@ All incoming data is validated through **Zod schemas** before reaching the contr
 
 - **Files**: Logs are written to `logs/<severity>/<date>.log` — one subdirectory per severity, one file per day. The base `logs/` directory is `LOG_DIR` if set and writable, otherwise a local default (`src/../logs`); if `LOG_DIR` exists but isn't writable by the process (e.g. wrong ownership), a warning is printed to stderr and the local default is used instead. The resolution (including the writability check) runs once per process and is cached.
 - **Database**: Errors (`WARNING` and above) are additionally stored in the `ErrorLog` table.
-- **Correlation ID**: Every log entry includes the `x-request-id` of the triggering request when available. Logs outside a request context (e.g. startup) omit the ID.
+- **Correlation ID**: Every log entry includes the `x-request-id`, requester IP, and identity of the triggering request when available. Logs outside a request context (e.g. startup) omit this part entirely.
 
 Log format:
 
 ```
-2026-03-17T10:23:11.042Z | REQUEST | a3f1b2c4-... | /api/v1/auth/login | {"emailOrUsername":"Test"}
-2026-03-17T10:23:11.118Z | WARNING | a3f1b2c4-... | /api/v1/auth/login | Invalid email/username or password
+2026-03-17T10:23:11.042Z | REQUEST | a3f1b2c4-... | ip=203.0.113.5 | identity=anonymous | /api/v1/auth/login | {"emailOrUsername":"Test"}
+2026-03-17T10:23:11.118Z | WARNING | a3f1b2c4-... | ip=203.0.113.5 | identity=anonymous | /api/v1/auth/login | Invalid email/username or password
 ```
 
 ### 4. Correlation ID
 
-Every request gets a unique ID (`x-request-id`):
+Every request gets a unique ID (`x-request-id`), plus a request context tracking its IP and identity:
 
 - Taken from the incoming request header if present, otherwise auto-generated (UUID v4).
 - Returned in the response header so clients can correlate requests.
 - Propagated automatically through the entire async call chain via `AsyncLocalStorage` — no manual passing required.
+- The requester's IP is recorded as soon as the request comes in; identity starts as `"anonymous"` and is overwritten by auth middleware (`setRequestIdentity`) once a token is verified — e.g. `user:<userID>`.
 
 ### 5. Security
 
