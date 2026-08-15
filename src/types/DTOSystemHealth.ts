@@ -5,4 +5,9 @@ export interface DTOSystemHealth {
     database: "healthy" | "unhealthy";
     email: "healthy" | "unhealthy";
   };
+  pool?: {
+    total: number | null;
+    free: number | null;
+    limit: number;
+  };
 }

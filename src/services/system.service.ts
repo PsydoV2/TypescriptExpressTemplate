@@ -1,6 +1,7 @@
 import { EmailHelper } from "../helper/EmailHelper";
 import { SystemRepository } from "../repositories/system.repository";
 import { DTOSystemHealth } from "../types/DTOSystemHealth";
+import { getDBPoolStats } from "../config/DBConnectionPool";
 
 export const SystemService = {
   async health(): Promise<DTOSystemHealth> {
@@ -14,6 +15,7 @@ export const SystemService = {
         database: isDbHealthy ? "healthy" : "unhealthy",
         email: isEmailHealthy ? "healthy" : "unhealthy",
       },
+      pool: getDBPoolStats(),
     };
   },
 };

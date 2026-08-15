@@ -212,7 +212,27 @@ All routes are versioned under `/api/v1/`.
 | `POST`   | `/api/v1/auth/reset-password`         | —    | Set a new password using a reset token               |
 | `DELETE` | `/api/v1/user/deleteAccount`          | ✅   | Delete the authenticated user's account              |
 | `GET`    | `/api/v1/user/getUser`                | ✅   | Fetch user data                                      |
-| `GET`    | `/api/v1/system/health`               | —    | Health check (database status)                       |
+| `GET`    | `/api/v1/system/health`               | —    | Health check (database, email, DB pool stats)        |
+
+`GET /api/v1/system/health` response shape:
+
+```json
+{
+  "status": "UP",
+  "timestamp": "2026-08-15T10:23:11.042Z",
+  "services": {
+    "database": "healthy",
+    "email": "healthy"
+  },
+  "pool": {
+    "total": 4,
+    "free": 3,
+    "limit": 20
+  }
+}
+```
+
+`pool.total`/`pool.free` are read from mysql2's internal connection queues and fall back to `null` if that internal shape ever changes in a future mysql2 upgrade; `pool.limit` is the configured `connectionLimit`.
 
 ---
 
