@@ -17,6 +17,11 @@ export type LogSeverity = (typeof LogSeverity)[keyof typeof LogSeverity];
 export class LogHelper {
   private static dbConfigWarned = false;
 
+  // Cached per process so the mkdir+access writability probe only runs
+  // once per severity instead of on every single log call.
+  private static resolvedLogDirPromise: Promise<string> | undefined;
+  private static severityDirPromises = new Map<LogSeverity, Promise<string>>();
+
   private static getTodayDate() {
     return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   }
@@ -25,25 +30,88 @@ export class LogHelper {
     return new Date().toISOString(); // YYYY-MM-DDTHH:mm:ss.sssZ
   }
 
-  private static resolveLogDir(logDirName: string): string {
-    return env.LOG_DIR
-      ? path.resolve(env.LOG_DIR)
-      : path.resolve(__dirname, "..", logDirName);
+  private static defaultLogDir(): string {
+    return path.resolve(__dirname, "..", "logs");
   }
 
-  private static async createLogDirIfNotExists(logDirName: string) {
-    const logDir = this.resolveLogDir(logDirName);
-    try {
-      await fs.mkdir(logDir, { recursive: true });
-    } catch (err) {
-      console.error("❌ Failed to create logs directory:", err);
+  /** Creates `dir` (recursively) and verifies this process can write to it. */
+  private static async ensureWritableDir(dir: string): Promise<void> {
+    await fs.mkdir(dir, { recursive: true });
+    await fs.access(dir, fs.constants.W_OK);
+  }
+
+  /**
+   * Resolves the base `logs/` directory, verifying it's actually writable
+   * (not just that it exists — e.g. it could be owned by another user).
+   * Falls back to the local default directory if `LOG_DIR` isn't usable.
+   * The result is cached for the lifetime of the process.
+   */
+  private static resolveBaseLogDir(): Promise<string> {
+    if (!this.resolvedLogDirPromise) {
+      this.resolvedLogDirPromise = (async () => {
+        const defaultDir = this.defaultLogDir();
+
+        if (!env.LOG_DIR) {
+          await this.ensureWritableDir(defaultDir);
+          return defaultDir;
+        }
+
+        const configuredDir = path.resolve(env.LOG_DIR);
+        try {
+          await this.ensureWritableDir(configuredDir);
+          return configuredDir;
+        } catch (err) {
+          console.error(
+            `⚠️ LOG_DIR "${configuredDir}" is not writable, falling back to "${defaultDir}":`,
+            err,
+          );
+          try {
+            await this.ensureWritableDir(defaultDir);
+          } catch (fallbackErr) {
+            // Neither directory is writable — return the path anyway so the
+            // resulting write failure surfaces the real, correct path.
+            console.error(
+              `❌ Fallback logs directory "${defaultDir}" is not writable either:`,
+              fallbackErr,
+            );
+          }
+          return defaultDir;
+        }
+      })();
     }
 
-    return logDir;
+    return this.resolvedLogDirPromise;
   }
 
-  private static getTodayFilePath(logDirPath: string, prefix: string) {
-    return path.join(logDirPath, `${prefix}-${this.getTodayDate()}.log`);
+  /** Returns the resolved base `logs/` directory this process is writing to. */
+  public static async getBaseLogDir(): Promise<string> {
+    return this.resolveBaseLogDir();
+  }
+
+  /** Resolves (and caches) the per-severity subdirectory of the base log dir. */
+  private static resolveSeverityDir(severity: LogSeverity): Promise<string> {
+    let cached = this.severityDirPromises.get(severity);
+    if (!cached) {
+      cached = (async () => {
+        const baseDir = await this.resolveBaseLogDir();
+        const severityDir = path.join(baseDir, severity);
+        try {
+          await this.ensureWritableDir(severityDir);
+        } catch (err) {
+          console.error(
+            `❌ Failed to create/access log directory "${severityDir}":`,
+            err,
+          );
+        }
+        return severityDir;
+      })();
+      this.severityDirPromises.set(severity, cached);
+    }
+    return cached;
+  }
+
+  private static getTodayFilePath(logDirPath: string) {
+    return path.join(logDirPath, `${this.getTodayDate()}.log`);
   }
 
   private static logLineBuilder(
@@ -72,8 +140,8 @@ export class LogHelper {
     message: string,
     severity: LogSeverity = LogSeverity.INFO,
   ) {
-    const logDirPath = await this.createLogDirIfNotExists("logs");
-    const todayFilePath = this.getTodayFilePath(logDirPath, severity);
+    const severityDirPath = await this.resolveSeverityDir(severity);
+    const todayFilePath = this.getTodayFilePath(severityDirPath);
     const line = this.logLineBuilder(route, message, severity);
 
     await this.writeLogToFile(todayFilePath, line);
@@ -138,8 +206,6 @@ export class LogHelper {
 
     const connection = await DBConnectionPool.getConnection();
     try {
-      await connection.beginTransaction();
-
       // Insert error log into database (adjust schema/table for your project)
       const insertSQL = `
         INSERT INTO ErrorLog (route, error, level)
@@ -147,11 +213,7 @@ export class LogHelper {
       `;
 
       await connection.query(insertSQL, [route, errorString, level]);
-
-      await connection.commit();
     } catch (dbError) {
-      await connection.rollback();
-
       await this.logFile(
         "DBConnection",
         `DB logging failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,

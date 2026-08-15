@@ -43,7 +43,7 @@ All incoming data is validated through **Zod schemas** before reaching the contr
 
 `LogHelper` writes logs by severity (`INFO`, `REQUEST`, `WARNING`, `ERROR`, `CRITICAL`):
 
-- **Files**: All logs are written to daily rotating `.log` files.
+- **Files**: Logs are written to `logs/<severity>/<date>.log` — one subdirectory per severity, one file per day. The base `logs/` directory is `LOG_DIR` if set and writable, otherwise a local default (`src/../logs`); if `LOG_DIR` exists but isn't writable by the process (e.g. wrong ownership), a warning is printed to stderr and the local default is used instead. The resolution (including the writability check) runs once per process and is cached.
 - **Database**: Errors (`WARNING` and above) are additionally stored in the `ErrorLog` table.
 - **Correlation ID**: Every log entry includes the `x-request-id` of the triggering request when available. Logs outside a request context (e.g. startup) omit the ID.
 
