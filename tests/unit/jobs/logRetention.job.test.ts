@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
+import * as tar from "tar";
 import {
+  ARCHIVE_DIR_NAME,
+  archiveDateDir,
   planRetentionActions,
-  processDateDir,
   runLogRetention,
 } from "../../../src/jobs/logRetention.job";
 import { LogHelper } from "../../../src/helper/log.helper";
@@ -9,16 +11,14 @@ import { LogHelper } from "../../../src/helper/log.helper";
 jest.mock("node:fs", () => ({
   promises: {
     readdir: jest.fn(),
-    readFile: jest.fn(),
-    writeFile: jest.fn(),
+    mkdir: jest.fn(),
+    rm: jest.fn(),
     unlink: jest.fn(),
   },
 }));
 
-jest.mock("node:zlib", () => ({
-  gzip: jest.fn((_input: unknown, cb: (err: null, result: Buffer) => void) =>
-    cb(null, Buffer.from("compressed")),
-  ),
+jest.mock("tar", () => ({
+  create: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../../../src/helper/log.helper", () => {
@@ -31,104 +31,78 @@ jest.mock("../../../src/helper/log.helper", () => {
 
 const fsMock = fs as unknown as {
   readdir: jest.Mock;
-  readFile: jest.Mock;
-  writeFile: jest.Mock;
+  mkdir: jest.Mock;
+  rm: jest.Mock;
   unlink: jest.Mock;
 };
+const tarMock = tar as unknown as { create: jest.Mock };
 
 const NOW = new Date("2026-08-15T00:00:00.000Z");
-
-const RULES = {
-  request: { compressAfterDays: 7, deleteAfterDays: 30 },
-  info: { compressAfterDays: 14, deleteAfterDays: 60 },
-  warning: { compressAfterDays: 30, deleteAfterDays: 180 },
-  error: { compressAfterDays: 30, deleteAfterDays: 365 },
-  critical: { compressAfterDays: 90, deleteAfterDays: 730 },
-} as const;
+const RULE = { compressAfterDays: 14, deleteAfterDays: 365 };
 
 describe("planRetentionActions", () => {
-  it("marks .log files whose directory is old enough for compression", () => {
-    // 8 days old: past request's compressAfterDays (7).
-    const plan = planRetentionActions(["request.log"], 8, RULES);
-    expect(plan.toCompress).toEqual(["request.log"]);
+  it("marks <date>/ directories at least compressAfterDays old for archiving", () => {
+    // 2026-08-15 minus 2026-08-01 = 14 days old.
+    const plan = planRetentionActions(["2026-08-01"], [], RULE, NOW);
+    expect(plan.toArchive).toEqual(["2026-08-01"]);
   });
 
-  it("leaves .log files in a recent-enough directory alone", () => {
-    const plan = planRetentionActions(["request.log"], 1, RULES);
-    expect(plan.toCompress).toEqual([]);
+  it("leaves recent <date>/ directories alone", () => {
+    const plan = planRetentionActions(["2026-08-10"], [], RULE, NOW);
+    expect(plan.toArchive).toEqual([]);
   });
 
-  it("marks .log.gz files whose directory is old enough for deletion", () => {
-    const plan = planRetentionActions(["request.log.gz"], 30, RULES);
-    expect(plan.toDelete).toEqual(["request.log.gz"]);
+  it("ignores directory names that aren't a date", () => {
+    const plan = planRetentionActions(["Archive", "not-a-date"], [], RULE, NOW);
+    expect(plan.toArchive).toEqual([]);
   });
 
-  it("leaves .log.gz files in a recent-enough directory alone", () => {
-    const plan = planRetentionActions(["request.log.gz"], 10, RULES);
+  it("marks <date>.gz archives at least deleteAfterDays old for deletion", () => {
+    // 2026-08-15 minus 2025-08-15 = 365 days old.
+    const plan = planRetentionActions([], ["2025-08-15.gz"], RULE, NOW);
+    expect(plan.toDelete).toEqual(["2025-08-15.gz"]);
+  });
+
+  it("leaves recent archives alone", () => {
+    const plan = planRetentionActions([], ["2026-08-01.gz"], RULE, NOW);
     expect(plan.toDelete).toEqual([]);
   });
 
-  it("applies the rule matching each file's own severity", () => {
-    // 20 days old: past info's compressAfterDays (14) but not warning's (30).
-    const plan = planRetentionActions(["info.log", "warning.log"], 20, RULES);
-    expect(plan.toCompress).toEqual(["info.log"]);
-  });
-
-  it("ignores files that don't match the expected naming pattern", () => {
+  it("ignores files that don't match the <date>.gz naming pattern", () => {
     const plan = planRetentionActions(
-      ["readme.txt", "info.log.bak", ".gitkeep"],
-      100,
-      RULES,
+      [],
+      ["readme.txt", "2026-08-01.gz.bak", ".gitkeep"],
+      RULE,
+      NOW,
     );
-    expect(plan.toCompress).toEqual([]);
     expect(plan.toDelete).toEqual([]);
   });
 });
 
-describe("processDateDir", () => {
+describe("archiveDateDir", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("compresses old .log files and removes the original", async () => {
-    fsMock.readdir.mockResolvedValue(["info.log"]);
-    fsMock.readFile.mockResolvedValue(Buffer.from("log contents"));
+  it("tars the date directory into Archive/<date>.gz and removes the original", async () => {
+    await archiveDateDir("/logs", "2026-08-01");
 
-    await processDateDir("/logs/2026-08-01", 14, RULES);
-
-    expect(fsMock.readFile).toHaveBeenCalledWith(
-      expect.stringContaining("info.log"),
+    expect(fsMock.mkdir).toHaveBeenCalledWith(
+      expect.stringContaining(ARCHIVE_DIR_NAME),
+      { recursive: true },
     );
-    expect(fsMock.writeFile).toHaveBeenCalledWith(
-      expect.stringContaining("info.log.gz"),
-      expect.any(Buffer),
+    expect(tarMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gzip: true,
+        cwd: "/logs",
+        file: expect.stringContaining(`${ARCHIVE_DIR_NAME}/2026-08-01.gz`),
+      }),
+      ["2026-08-01"],
     );
-    expect(fsMock.unlink).toHaveBeenCalledWith(
-      expect.stringContaining("info.log"),
+    expect(fsMock.rm).toHaveBeenCalledWith(
+      expect.stringContaining("2026-08-01"),
+      { recursive: true, force: true },
     );
-  });
-
-  it("deletes old .log.gz files", async () => {
-    fsMock.readdir.mockResolvedValue(["info.log.gz"]);
-
-    await processDateDir("/logs/2026-01-01", 60, RULES);
-
-    expect(fsMock.unlink).toHaveBeenCalledWith(
-      expect.stringContaining("info.log.gz"),
-    );
-    expect(fsMock.readFile).not.toHaveBeenCalled();
-  });
-
-  it("does nothing and does not throw when the directory doesn't exist yet", async () => {
-    const enoent = Object.assign(new Error("no such file"), {
-      code: "ENOENT",
-    });
-    fsMock.readdir.mockRejectedValue(enoent);
-
-    await expect(
-      processDateDir("/logs/2026-08-15", 0, RULES),
-    ).resolves.toBeUndefined();
-    expect(fsMock.unlink).not.toHaveBeenCalled();
   });
 });
 
@@ -139,18 +113,39 @@ describe("runLogRetention", () => {
     (LogHelper.getBaseLogDir as jest.Mock).mockResolvedValue("/logs");
   });
 
-  it("processes every <date>/ subdirectory of the log dir", async () => {
-    fsMock.readdir.mockImplementation((dir: string) =>
-      Promise.resolve(dir === "/logs" ? ["2026-08-01", "2026-08-14", "not-a-date"] : []),
-    );
+  it("archives old date directories and deletes old archives", async () => {
+    fsMock.readdir.mockImplementation((dir: string) => {
+      if (dir === "/logs") {
+        return Promise.resolve(["2026-08-01", "2026-08-14", "not-a-date"]);
+      }
+      if (dir === "/logs/Archive") {
+        return Promise.resolve(["2025-01-01.gz"]);
+      }
+      return Promise.resolve([]);
+    });
 
     await runLogRetention(NOW);
 
-    const dirsProcessed = fsMock.readdir.mock.calls.map(([dir]) => dir);
-    expect(dirsProcessed).toEqual(
-      expect.arrayContaining(["/logs/2026-08-01", "/logs/2026-08-14"]),
+    // Only 2026-08-01 is >= 14 days old.
+    expect(tarMock.create).toHaveBeenCalledTimes(1);
+    expect(tarMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({ cwd: "/logs" }),
+      ["2026-08-01"],
     );
-    expect(dirsProcessed).not.toContain("/logs/not-a-date");
+    expect(fsMock.unlink).toHaveBeenCalledWith(
+      expect.stringContaining("2025-01-01.gz"),
+    );
+  });
+
+  it("does nothing when neither the log dir nor Archive/ exist yet", async () => {
+    const enoent = Object.assign(new Error("no such file"), {
+      code: "ENOENT",
+    });
+    fsMock.readdir.mockRejectedValue(enoent);
+
+    await expect(runLogRetention(NOW)).resolves.toBeUndefined();
+    expect(tarMock.create).not.toHaveBeenCalled();
+    expect(fsMock.unlink).not.toHaveBeenCalled();
   });
 
   it("skips a run if the previous one is still in progress", async () => {

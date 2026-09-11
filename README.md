@@ -59,12 +59,8 @@ Log format:
 
 ```
 logs/
-├── 2026-08-08/
-│   ├── request.log.gz   # compressed by the retention job (see below)
-│   ├── info.log.gz
-│   ├── warning.log.gz
-│   ├── error.log.gz
-│   └── critical.log.gz
+├── Archive/
+│   └── 2026-08-08.gz   # whole day, archived by the retention job (see below)
 └── 2026-08-15/
     ├── request.log
     ├── info.log
@@ -73,12 +69,12 @@ logs/
     └── critical.log
 ```
 
-**Log retention** (`src/jobs/logRetention.job.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) walks each `<date>/` subdirectory of the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rules`:
+**Log retention** (`src/jobs/logRetention.job.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) looks at the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rule`:
 
-- compresses `.log` files older than `compressAfterDays` to `.log.gz`
-- deletes `.log.gz` files older than `deleteAfterDays`
+- once a `<date>/` directory is at least `compressAfterDays` old, all its severity files are packed together into `Archive/<date>.gz` and the original directory is removed
+- once an `Archive/<date>.gz` is at least `deleteAfterDays` old, it's deleted
 
-Retention thresholds differ per severity — request logs are high-volume and short-lived, critical logs are kept much longer for incident analysis. A module-level guard skips (and warns about) a run if the previous one hasn't finished yet. Wired up automatically at startup via `scheduleLogRetention()` in `src/index.ts`.
+All severities in a day share one directory, so they archive and expire together — there's a single rule for the whole log dir rather than one per severity. A module-level guard skips (and warns about) a run if the previous one hasn't finished yet. Wired up automatically at startup via `scheduleLogRetention()` in `src/index.ts`.
 
 ### 4. Correlation ID
 
