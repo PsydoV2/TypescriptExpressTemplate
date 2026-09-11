@@ -13,6 +13,20 @@ export const LogSeverity = {
 
 export type LogSeverity = (typeof LogSeverity)[keyof typeof LogSeverity];
 
+// Which console method mirrors each severity to stdout/stderr — so process
+// managers like PM2 (which capture console output, not the log files) pick
+// logs up too, and so error-level output actually lands on stderr.
+const consoleMethodBySeverity: Record<
+  LogSeverity,
+  "log" | "info" | "warn" | "error"
+> = {
+  [LogSeverity.CRITICAL]: "error",
+  [LogSeverity.ERROR]: "error",
+  [LogSeverity.WARNING]: "warn",
+  [LogSeverity.INFO]: "info",
+  [LogSeverity.REQUEST]: "log",
+};
+
 export class LogHelper {
   // Cached per process so the mkdir+access writability probe only runs
   // once per day instead of on every single log call.
@@ -136,15 +150,22 @@ export class LogHelper {
     }
   }
 
+  /** Mirrors a log line to console.<log|info|warn|error>, per severity. */
+  private static logToConsole(severity: LogSeverity, line: string) {
+    const method = consoleMethodBySeverity[severity];
+    console[method](line.trimEnd());
+  }
+
   private static async logFile(
     route: string,
     message: string,
     severity: LogSeverity = LogSeverity.INFO,
   ) {
+    const line = this.logLineBuilder(route, message, severity);
+    this.logToConsole(severity, line);
+
     const dateDirPath = await this.resolveDateDir(this.getTodayDate());
     const filePath = this.getSeverityFilePath(dateDirPath, severity);
-    const line = this.logLineBuilder(route, message, severity);
-
     await this.writeLogToFile(filePath, line);
   }
 

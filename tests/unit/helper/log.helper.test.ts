@@ -31,6 +31,9 @@ describe("LogHelper", () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    jest.spyOn(console, "info").mockImplementation(() => undefined);
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
     jest.spyOn(console, "error").mockImplementation(() => undefined);
 
     fsp = require("node:fs/promises");
@@ -62,6 +65,24 @@ describe("LogHelper", () => {
     expect(path.dirname(infoPath)).toBe(path.dirname(errorPath));
     expect(path.basename(infoPath)).toBe("info.log");
     expect(path.basename(errorPath)).toBe("error.log");
+  });
+
+  it("mirrors every log line to the console method matching its severity", async () => {
+    await LogHelper.logInfo("route", "info msg");
+    await LogHelper.logRequest("route", "request payload");
+    await LogHelper.logError("route", new Error("warn msg"), LogSeverity.WARNING);
+    await LogHelper.logError("route", new Error("error msg"), LogSeverity.ERROR);
+    await LogHelper.logError("route", new Error("critical msg"), LogSeverity.CRITICAL);
+
+    expect(console.info).toHaveBeenCalledWith(expect.stringContaining("info msg"));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("request payload"));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("warn msg"));
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("error msg"));
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("critical msg"));
+
+    // Mirrored line has no trailing newline (unlike the one written to file).
+    const [infoLine] = (console.info as jest.Mock).mock.calls[0];
+    expect(infoLine.endsWith("\n")).toBe(false);
   });
 
   it("resolves and caches the log directory once per day", async () => {
