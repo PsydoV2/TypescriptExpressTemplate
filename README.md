@@ -46,6 +46,7 @@ All incoming data is validated through **Zod schemas** before reaching the contr
 `LogHelper` writes logs by severity (`INFO`, `REQUEST`, `WARNING`, `ERROR`, `CRITICAL`):
 
 - **Files**: Logs are written to `logs/<date>/<severity>.log` — one subdirectory per day, one file per severity. The base `logs/` directory is `LOG_DIR` if set and writable, otherwise a local default (`src/../logs`); if `LOG_DIR` exists but isn't writable by the process (e.g. wrong ownership), a warning is printed to stderr and the local default is used instead. The resolution (including the writability check) runs once per process and is cached.
+- **Console**: Every line written to a log file is also mirrored to the console — `console.info` for `INFO`, `console.warn` for `WARNING`, `console.error` for `ERROR`/`CRITICAL`, `console.log` for `REQUEST` — so process managers like PM2 that capture stdout/stderr (rather than tailing the log files) pick everything up too.
 - **Correlation ID**: Every log entry includes the `x-request-id`, requester IP, and identity of the triggering request when available. Logs outside a request context (e.g. startup) omit this part entirely.
 
 Log format:
