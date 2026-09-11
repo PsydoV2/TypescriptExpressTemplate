@@ -14,11 +14,6 @@ jest.mock("../../../src/config/env.config", () => ({
   env: { LOG_DIR: undefined },
 }));
 
-jest.mock("../../../src/config/db.config", () => ({
-  DBConnectionPool: { getConnection: jest.fn() },
-  isDBConfigured: jest.fn(),
-}));
-
 jest.mock("../../../src/utils/requestContext.util", () => ({
   getRequestId: jest.fn(() => undefined),
 }));
@@ -30,10 +25,6 @@ describe("LogHelper", () => {
     appendFile: jest.Mock;
   };
   let envModule: { env: { LOG_DIR: string | undefined } };
-  let dbModule: {
-    DBConnectionPool: { getConnection: jest.Mock };
-    isDBConfigured: jest.Mock;
-  };
   let LogHelper: typeof import("../../../src/helper/log.helper").LogHelper;
   let LogSeverity: typeof import("../../../src/helper/log.helper").LogSeverity;
 
@@ -50,26 +41,34 @@ describe("LogHelper", () => {
     envModule = require("../../../src/config/env.config");
     envModule.env.LOG_DIR = undefined;
 
-    dbModule = require("../../../src/config/db.config");
-    dbModule.isDBConfigured.mockReturnValue(false);
-
     ({ LogHelper, LogSeverity } = require("../../../src/helper/log.helper"));
   });
 
-  it("writes to a per-severity subdirectory: logs/<severity>/<date>.log", async () => {
+  it("writes to a per-day subdirectory: logs/<date>/<severity>.log", async () => {
     await LogHelper.logInfo("test-route", "hello world");
 
     expect(fsp.appendFile).toHaveBeenCalledTimes(1);
     const [filePath, line] = fsp.appendFile.mock.calls[0];
-    expect(filePath).toMatch(/logs[\\/]info[\\/]\d{4}-\d{2}-\d{2}\.log$/);
+    expect(filePath).toMatch(/logs[\\/]\d{4}-\d{2}-\d{2}[\\/]info\.log$/);
     expect(line).toContain("hello world");
   });
 
-  it("resolves and caches the log directory once per severity", async () => {
+  it("writes different severities into the same day's directory", async () => {
+    await LogHelper.logInfo("route1", "msg1");
+    await LogHelper.logError("route2", new Error("boom"), LogSeverity.ERROR);
+
+    const [infoPath] = fsp.appendFile.mock.calls[0];
+    const [errorPath] = fsp.appendFile.mock.calls[1];
+    expect(path.dirname(infoPath)).toBe(path.dirname(errorPath));
+    expect(path.basename(infoPath)).toBe("info.log");
+    expect(path.basename(errorPath)).toBe("error.log");
+  });
+
+  it("resolves and caches the log directory once per day", async () => {
     await LogHelper.logInfo("route1", "msg1");
     await LogHelper.logInfo("route2", "msg2");
 
-    // One mkdir/access pair for the base dir, one for the "info" subdir —
+    // One mkdir/access pair for the base dir, one for today's date subdir —
     // not repeated on the second call.
     expect(fsp.mkdir).toHaveBeenCalledTimes(2);
     expect(fsp.access).toHaveBeenCalledTimes(2);
@@ -95,54 +94,7 @@ describe("LogHelper", () => {
 
     const [filePath] = fsp.appendFile.mock.calls[0];
     expect(filePath).not.toContain(configuredDir);
-    expect(filePath).toMatch(/logs[\\/]info[\\/]\d{4}-\d{2}-\d{2}\.log$/);
+    expect(filePath).toMatch(/logs[\\/]\d{4}-\d{2}-\d{2}[\\/]info\.log$/);
     expect(console.error).toHaveBeenCalled();
-  });
-
-  it("logError performs a plain INSERT without wrapping it in a transaction", async () => {
-    const query = jest.fn().mockResolvedValue([{}]);
-    const release = jest.fn();
-    const beginTransaction = jest.fn();
-    const commit = jest.fn();
-    const rollback = jest.fn();
-
-    dbModule.isDBConfigured.mockReturnValue(true);
-    dbModule.DBConnectionPool.getConnection.mockResolvedValue({
-      query,
-      release,
-      beginTransaction,
-      commit,
-      rollback,
-    });
-
-    await LogHelper.logError("route", new Error("boom"), LogSeverity.ERROR);
-
-    expect(query).toHaveBeenCalledTimes(1);
-    expect(query.mock.calls[0][0]).toContain("INSERT INTO ErrorLog");
-    expect(beginTransaction).not.toHaveBeenCalled();
-    expect(commit).not.toHaveBeenCalled();
-    expect(rollback).not.toHaveBeenCalled();
-    expect(release).toHaveBeenCalledTimes(1);
-  });
-
-  it("logs a CRITICAL file entry and still releases the connection when the INSERT fails", async () => {
-    const query = jest.fn().mockRejectedValue(new Error("db down"));
-    const release = jest.fn();
-
-    dbModule.isDBConfigured.mockReturnValue(true);
-    dbModule.DBConnectionPool.getConnection.mockResolvedValue({
-      query,
-      release,
-    });
-
-    await LogHelper.logError("route", new Error("boom"), LogSeverity.ERROR);
-
-    expect(release).toHaveBeenCalledTimes(1);
-    const criticalCall = fsp.appendFile.mock.calls.find(
-      ([filePath]: [string]) =>
-        filePath.includes(`${path.sep}critical${path.sep}`),
-    );
-    expect(criticalCall).toBeDefined();
-    expect(criticalCall![1]).toContain("DB logging failed");
   });
 });

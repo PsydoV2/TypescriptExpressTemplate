@@ -9,14 +9,11 @@ export const AppConfig = {
     logRetention: "0 4 * * *", // daily at 04:00
   },
   logRetention: {
-    // per LogSeverity subdirectory: compress .log files older than N
-    // days, delete already-compressed .log.gz files older than M days
-    rules: {
-      request: { compressAfterDays: 7, deleteAfterDays: 30 },
-      info: { compressAfterDays: 14, deleteAfterDays: 60 },
-      warning: { compressAfterDays: 30, deleteAfterDays: 180 },
-      error: { compressAfterDays: 30, deleteAfterDays: 365 },
-      critical: { compressAfterDays: 90, deleteAfterDays: 730 },
-    },
+    // Applies to the log dir as a whole (all severities share one <date>/
+    // directory, so they archive and expire together): once a <date>/
+    // directory is at least `compressAfterDays` old, it's packed into
+    // logs/Archive/<date>.gz and removed; once an archive is at least
+    // `deleteAfterDays` old, it's deleted.
+    rule: { compressAfterDays: 14, deleteAfterDays: 365 },
   },
 } as const;

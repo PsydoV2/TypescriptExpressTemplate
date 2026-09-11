@@ -45,8 +45,7 @@ All incoming data is validated through **Zod schemas** before reaching the contr
 
 `LogHelper` writes logs by severity (`INFO`, `REQUEST`, `WARNING`, `ERROR`, `CRITICAL`):
 
-- **Files**: Logs are written to `logs/<severity>/<date>.log` — one subdirectory per severity, one file per day. The base `logs/` directory is `LOG_DIR` if set and writable, otherwise a local default (`src/../logs`); if `LOG_DIR` exists but isn't writable by the process (e.g. wrong ownership), a warning is printed to stderr and the local default is used instead. The resolution (including the writability check) runs once per process and is cached.
-- **Database**: Errors (`WARNING` and above) are additionally stored in the `ErrorLog` table.
+- **Files**: Logs are written to `logs/<date>/<severity>.log` — one subdirectory per day, one file per severity. The base `logs/` directory is `LOG_DIR` if set and writable, otherwise a local default (`src/../logs`); if `LOG_DIR` exists but isn't writable by the process (e.g. wrong ownership), a warning is printed to stderr and the local default is used instead. The resolution (including the writability check) runs once per process and is cached.
 - **Correlation ID**: Every log entry includes the `x-request-id`, requester IP, and identity of the triggering request when available. Logs outside a request context (e.g. startup) omit this part entirely.
 
 Log format:
@@ -60,21 +59,22 @@ Log format:
 
 ```
 logs/
-├── request/
-│   ├── 2026-08-08.log.gz   # compressed by the retention job (see below)
-│   └── 2026-08-15.log
-├── info/
-├── warning/
-├── error/
-└── critical/
+├── Archive/
+│   └── 2026-08-08.gz   # whole day, archived by the retention job (see below)
+└── 2026-08-15/
+    ├── request.log
+    ├── info.log
+    ├── warning.log
+    ├── error.log
+    └── critical.log
 ```
 
-**Log retention** (`src/jobs/logRetention.job.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) walks each severity subdirectory of the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rules`:
+**Log retention** (`src/jobs/logRetention.job.ts`): a nightly cron job (schedule in `AppConfig.cron.logRetention`, default `0 4 * * *`) looks at the log dir returned by `LogHelper.getBaseLogDir()` and, per `AppConfig.logRetention.rule`:
 
-- compresses `.log` files older than `compressAfterDays` to `.log.gz`
-- deletes `.log.gz` files older than `deleteAfterDays`
+- once a `<date>/` directory is at least `compressAfterDays` old, all its severity files are packed together into `Archive/<date>.gz` and the original directory is removed
+- once an `Archive/<date>.gz` is at least `deleteAfterDays` old, it's deleted
 
-Retention thresholds differ per severity — request logs are high-volume and short-lived, critical logs are kept much longer for incident analysis. A module-level guard skips (and warns about) a run if the previous one hasn't finished yet. Wired up automatically at startup via `scheduleLogRetention()` in `src/index.ts`.
+All severities in a day share one directory, so they archive and expire together — there's a single rule for the whole log dir rather than one per severity. A module-level guard skips (and warns about) a run if the previous one hasn't finished yet. Wired up automatically at startup via `scheduleLogRetention()` in `src/index.ts`.
 
 ### 4. Correlation ID
 
@@ -181,18 +181,6 @@ CREATE TABLE RefreshTokens (
     revoked BOOLEAN DEFAULT FALSE,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userID) REFERENCES Users(userID) ON DELETE CASCADE
-);
-```
-
-### ErrorLog Table
-
-```sql
-CREATE TABLE ErrorLog (
-    errorID INT AUTO_INCREMENT PRIMARY KEY,
-    route VARCHAR(255),
-    error TEXT,
-    level VARCHAR(50),
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
