@@ -223,6 +223,8 @@ All routes are versioned under `/api/v1/`.
 
 `pool.total`/`pool.free` are read from mysql2's internal connection queues and fall back to `null` if that internal shape ever changes in a future mysql2 upgrade; `pool.limit` is the configured `connectionLimit`.
 
+Responds `200` when `status` is `"UP"`, `503` when it's `"DOWN"` — so a plain uptime monitor (e.g. Uptime Kuma's default HTTP(s) monitor, which only looks at the status code) detects an outage without needing keyword matching on the body.
+
 ---
 
 ## 🚦 Available Scripts
