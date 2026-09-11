@@ -10,10 +10,12 @@ const gzip = promisify(zlib.gzip);
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const LOG_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\.log$/;
-const GZ_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})\.log\.gz$/;
+const DATE_DIR_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const LOG_FILE_PATTERN = /^([a-z]+)\.log$/;
+const GZ_FILE_PATTERN = /^([a-z]+)\.log\.gz$/;
 
 type RetentionRule = { compressAfterDays: number; deleteAfterDays: number };
+type RetentionRules = Record<LogSeverity, RetentionRule>;
 
 interface RetentionPlan {
   toCompress: string[];
@@ -21,20 +23,21 @@ interface RetentionPlan {
 }
 
 function ageInDays(isoDate: string, now: Date): number {
-  const fileDate = new Date(`${isoDate}T00:00:00.000Z`);
-  return (now.getTime() - fileDate.getTime()) / MS_PER_DAY;
+  const dirDate = new Date(`${isoDate}T00:00:00.000Z`);
+  return (now.getTime() - dirDate.getTime()) / MS_PER_DAY;
 }
 
 /**
- * Pure planning step: given the filenames present in a severity directory,
+ * Pure planning step: given the filenames present in a date directory
+ * (`<severity>.log` / `<severity>.log.gz`) and that directory's age,
  * decides which `.log` files are old enough to compress and which
- * `.log.gz` files are old enough to delete. Does no filesystem I/O, so it's
- * trivial to unit test.
+ * `.log.gz` files are old enough to delete — per the rule for the file's
+ * own severity. Does no filesystem I/O, so it's trivial to unit test.
  */
 export function planRetentionActions(
   fileNames: string[],
-  rule: RetentionRule,
-  now: Date = new Date(),
+  ageDays: number,
+  rules: RetentionRules,
 ): RetentionPlan {
   const toCompress: string[] = [];
   const toDelete: string[] = [];
@@ -42,8 +45,9 @@ export function planRetentionActions(
   for (const fileName of fileNames) {
     const logMatch = LOG_FILE_PATTERN.exec(fileName);
     if (logMatch) {
-      const [, isoDate] = logMatch;
-      if (isoDate && ageInDays(isoDate, now) >= rule.compressAfterDays) {
+      const severity = logMatch[1] as LogSeverity;
+      const rule = rules[severity];
+      if (rule && ageDays >= rule.compressAfterDays) {
         toCompress.push(fileName);
       }
       continue;
@@ -51,8 +55,9 @@ export function planRetentionActions(
 
     const gzMatch = GZ_FILE_PATTERN.exec(fileName);
     if (gzMatch) {
-      const [, isoDate] = gzMatch;
-      if (isoDate && ageInDays(isoDate, now) >= rule.deleteAfterDays) {
+      const severity = gzMatch[1] as LogSeverity;
+      const rule = rules[severity];
+      if (rule && ageDays >= rule.deleteAfterDays) {
         toDelete.push(fileName);
       }
     }
@@ -69,23 +74,23 @@ async function compressFile(dir: string, fileName: string): Promise<void> {
   await fs.unlink(filePath);
 }
 
-/** Applies the retention rule to a single severity subdirectory. */
-export async function processSeverityDir(
+/** Applies the retention rules to a single `<date>/` directory. */
+export async function processDateDir(
   dir: string,
-  rule: RetentionRule,
-  now: Date = new Date(),
+  ageDays: number,
+  rules: RetentionRules,
 ): Promise<void> {
   let fileNames: string[];
   try {
     fileNames = await fs.readdir(dir);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-      return; // Nothing has been logged at this severity yet.
+      return; // Nothing has been logged on this day (any more).
     }
     throw err;
   }
 
-  const { toCompress, toDelete } = planRetentionActions(fileNames, rule, now);
+  const { toCompress, toDelete } = planRetentionActions(fileNames, ageDays, rules);
 
   for (const fileName of toCompress) {
     await compressFile(dir, fileName);
@@ -99,7 +104,7 @@ export async function processSeverityDir(
 // (e.g. a very large backlog on first run).
 let isRunning = false;
 
-/** Runs one retention pass across every LogSeverity subdirectory. */
+/** Runs one retention pass across every `<date>/` subdirectory of the log dir. */
 export async function runLogRetention(now: Date = new Date()): Promise<void> {
   if (isRunning) {
     console.warn(
@@ -113,9 +118,21 @@ export async function runLogRetention(now: Date = new Date()): Promise<void> {
     const baseDir = await LogHelper.getBaseLogDir();
     const rules = AppConfig.logRetention.rules;
 
-    for (const severity of Object.values(LogSeverity)) {
-      const severityDir = path.join(baseDir, severity);
-      await processSeverityDir(severityDir, rules[severity], now);
+    let entries: string[];
+    try {
+      entries = await fs.readdir(baseDir);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        entries = [];
+      } else {
+        throw err;
+      }
+    }
+
+    for (const entry of entries) {
+      if (!DATE_DIR_PATTERN.test(entry)) continue;
+      const ageDays = ageInDays(entry, now);
+      await processDateDir(path.join(baseDir, entry), ageDays, rules);
     }
   } catch (err) {
     await LogHelper.logError("logRetention", err, LogSeverity.ERROR);

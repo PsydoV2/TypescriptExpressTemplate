@@ -1,4 +1,3 @@
-import { DBConnectionPool, isDBConfigured } from "../config/db.config";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { env } from "../config/env.config";
@@ -15,12 +14,10 @@ export const LogSeverity = {
 export type LogSeverity = (typeof LogSeverity)[keyof typeof LogSeverity];
 
 export class LogHelper {
-  private static dbConfigWarned = false;
-
   // Cached per process so the mkdir+access writability probe only runs
-  // once per severity instead of on every single log call.
+  // once per day instead of on every single log call.
   private static resolvedLogDirPromise: Promise<string> | undefined;
-  private static severityDirPromises = new Map<LogSeverity, Promise<string>>();
+  private static dateDirPromises = new Map<string, Promise<string>>();
 
   private static getTodayDate() {
     return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -88,30 +85,30 @@ export class LogHelper {
     return this.resolveBaseLogDir();
   }
 
-  /** Resolves (and caches) the per-severity subdirectory of the base log dir. */
-  private static resolveSeverityDir(severity: LogSeverity): Promise<string> {
-    let cached = this.severityDirPromises.get(severity);
+  /** Resolves (and caches) today's date subdirectory of the base log dir. */
+  private static resolveDateDir(date: string): Promise<string> {
+    let cached = this.dateDirPromises.get(date);
     if (!cached) {
       cached = (async () => {
         const baseDir = await this.resolveBaseLogDir();
-        const severityDir = path.join(baseDir, severity);
+        const dateDir = path.join(baseDir, date);
         try {
-          await this.ensureWritableDir(severityDir);
+          await this.ensureWritableDir(dateDir);
         } catch (err) {
           console.error(
-            `❌ Failed to create/access log directory "${severityDir}":`,
+            `❌ Failed to create/access log directory "${dateDir}":`,
             err,
           );
         }
-        return severityDir;
+        return dateDir;
       })();
-      this.severityDirPromises.set(severity, cached);
+      this.dateDirPromises.set(date, cached);
     }
     return cached;
   }
 
-  private static getTodayFilePath(logDirPath: string) {
-    return path.join(logDirPath, `${this.getTodayDate()}.log`);
+  private static getSeverityFilePath(dateDirPath: string, severity: LogSeverity) {
+    return path.join(dateDirPath, `${severity}.log`);
   }
 
   private static logLineBuilder(
@@ -144,11 +141,11 @@ export class LogHelper {
     message: string,
     severity: LogSeverity = LogSeverity.INFO,
   ) {
-    const severityDirPath = await this.resolveSeverityDir(severity);
-    const todayFilePath = this.getTodayFilePath(severityDirPath);
+    const dateDirPath = await this.resolveDateDir(this.getTodayDate());
+    const filePath = this.getSeverityFilePath(dateDirPath, severity);
     const line = this.logLineBuilder(route, message, severity);
 
-    await this.writeLogToFile(todayFilePath, line);
+    await this.writeLogToFile(filePath, line);
   }
 
   /** Writes an info-level line to today's log file. */
@@ -169,11 +166,7 @@ export class LogHelper {
     }
   }
 
-  /**
-   * Writes an error-level line to today's log file and, for WARNING and
-   * above, also inserts it into the ErrorLog table (skipped, with a
-   * one-time warning, if the database isn't configured).
-   */
+  /** Writes an error-level line to today's log file. */
   public static async logError(
     route: string,
     error: unknown,
@@ -181,50 +174,10 @@ export class LogHelper {
   ) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (level === LogSeverity.INFO) {
-      await LogHelper.logInfo(route, errorMessage);
-      return;
-    }
-
     try {
       await this.logFile(route, errorMessage, level);
     } catch (fileErr) {
       console.error("❌ Failed to write error log file:", fileErr);
-    }
-
-    // If DB is not configured, skip DB logging and emit a one-time file warning
-    if (!isDBConfigured()) {
-      if (!this.dbConfigWarned) {
-        await this.logFile(
-          "DBConnection",
-          "Database configuration is incomplete. DB logging is disabled.",
-          LogSeverity.CRITICAL,
-        );
-        this.dbConfigWarned = true;
-      }
-      return;
-    }
-
-    const errorString =
-      error instanceof Error ? error.stack || error.message : String(error);
-
-    const connection = await DBConnectionPool.getConnection();
-    try {
-      // Insert error log into database (adjust schema/table for your project)
-      const insertSQL = `
-        INSERT INTO ErrorLog (route, error, level)
-        VALUES (?, ?, ?)
-      `;
-
-      await connection.query(insertSQL, [route, errorString, level]);
-    } catch (dbError) {
-      await this.logFile(
-        "DBConnection",
-        `DB logging failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
-        LogSeverity.CRITICAL,
-      );
-    } finally {
-      connection.release();
     }
   }
 }

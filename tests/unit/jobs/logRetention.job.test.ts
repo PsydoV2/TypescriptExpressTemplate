@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import {
   planRetentionActions,
-  processSeverityDir,
+  processDateDir,
   runLogRetention,
 } from "../../../src/jobs/logRetention.job";
 import { LogHelper } from "../../../src/helper/log.helper";
@@ -38,84 +38,83 @@ const fsMock = fs as unknown as {
 
 const NOW = new Date("2026-08-15T00:00:00.000Z");
 
-describe("planRetentionActions", () => {
-  const rule = { compressAfterDays: 7, deleteAfterDays: 30 };
+const RULES = {
+  request: { compressAfterDays: 7, deleteAfterDays: 30 },
+  info: { compressAfterDays: 14, deleteAfterDays: 60 },
+  warning: { compressAfterDays: 30, deleteAfterDays: 180 },
+  error: { compressAfterDays: 30, deleteAfterDays: 365 },
+  critical: { compressAfterDays: 90, deleteAfterDays: 730 },
+} as const;
 
-  it("marks .log files older than compressAfterDays for compression", () => {
-    const plan = planRetentionActions(
-      ["2026-08-07.log", "2026-08-08.log"],
-      rule,
-      NOW,
-    );
-    // 2026-08-07 is exactly 8 days old, 2026-08-08 is exactly 7 days old.
-    expect(plan.toCompress).toEqual(["2026-08-07.log", "2026-08-08.log"]);
+describe("planRetentionActions", () => {
+  it("marks .log files whose directory is old enough for compression", () => {
+    // 8 days old: past request's compressAfterDays (7).
+    const plan = planRetentionActions(["request.log"], 8, RULES);
+    expect(plan.toCompress).toEqual(["request.log"]);
   });
 
-  it("leaves recent .log files alone", () => {
-    const plan = planRetentionActions(["2026-08-14.log"], rule, NOW);
+  it("leaves .log files in a recent-enough directory alone", () => {
+    const plan = planRetentionActions(["request.log"], 1, RULES);
     expect(plan.toCompress).toEqual([]);
   });
 
-  it("marks .log.gz files older than deleteAfterDays for deletion", () => {
-    const plan = planRetentionActions(["2026-07-16.log.gz"], rule, NOW);
-    // Exactly 30 days old.
-    expect(plan.toDelete).toEqual(["2026-07-16.log.gz"]);
+  it("marks .log.gz files whose directory is old enough for deletion", () => {
+    const plan = planRetentionActions(["request.log.gz"], 30, RULES);
+    expect(plan.toDelete).toEqual(["request.log.gz"]);
   });
 
-  it("leaves recent .log.gz files alone", () => {
-    const plan = planRetentionActions(["2026-07-20.log.gz"], rule, NOW);
+  it("leaves .log.gz files in a recent-enough directory alone", () => {
+    const plan = planRetentionActions(["request.log.gz"], 10, RULES);
     expect(plan.toDelete).toEqual([]);
+  });
+
+  it("applies the rule matching each file's own severity", () => {
+    // 20 days old: past info's compressAfterDays (14) but not warning's (30).
+    const plan = planRetentionActions(["info.log", "warning.log"], 20, RULES);
+    expect(plan.toCompress).toEqual(["info.log"]);
   });
 
   it("ignores files that don't match the expected naming pattern", () => {
     const plan = planRetentionActions(
-      ["readme.txt", "2026-08-01.log.bak", ".gitkeep"],
-      rule,
-      NOW,
+      ["readme.txt", "info.log.bak", ".gitkeep"],
+      100,
+      RULES,
     );
     expect(plan.toCompress).toEqual([]);
     expect(plan.toDelete).toEqual([]);
   });
 });
 
-describe("processSeverityDir", () => {
+describe("processDateDir", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("compresses old .log files and removes the original", async () => {
-    fsMock.readdir.mockResolvedValue(["2026-08-01.log"]);
+    fsMock.readdir.mockResolvedValue(["info.log"]);
     fsMock.readFile.mockResolvedValue(Buffer.from("log contents"));
 
-    await processSeverityDir(
-      "/logs/info",
-      { compressAfterDays: 7, deleteAfterDays: 30 },
-      NOW,
-    );
+    await processDateDir("/logs/2026-08-01", 14, RULES);
 
     expect(fsMock.readFile).toHaveBeenCalledWith(
-      expect.stringContaining("2026-08-01.log"),
+      expect.stringContaining("info.log"),
     );
     expect(fsMock.writeFile).toHaveBeenCalledWith(
-      expect.stringContaining("2026-08-01.log.gz"),
+      expect.stringContaining("info.log.gz"),
       expect.any(Buffer),
     );
     expect(fsMock.unlink).toHaveBeenCalledWith(
-      expect.stringContaining("2026-08-01.log"),
+      expect.stringContaining("info.log"),
     );
   });
 
   it("deletes old .log.gz files", async () => {
-    fsMock.readdir.mockResolvedValue(["2026-01-01.log.gz"]);
+    fsMock.readdir.mockResolvedValue(["info.log.gz"]);
 
-    await processSeverityDir(
-      "/logs/info",
-      { compressAfterDays: 7, deleteAfterDays: 30 },
-      NOW,
-    );
+    await processDateDir("/logs/2026-01-01", 60, RULES);
 
     expect(fsMock.unlink).toHaveBeenCalledWith(
-      expect.stringContaining("2026-01-01.log.gz"),
+      expect.stringContaining("info.log.gz"),
     );
     expect(fsMock.readFile).not.toHaveBeenCalled();
   });
@@ -127,11 +126,7 @@ describe("processSeverityDir", () => {
     fsMock.readdir.mockRejectedValue(enoent);
 
     await expect(
-      processSeverityDir(
-        "/logs/critical",
-        { compressAfterDays: 90, deleteAfterDays: 730 },
-        NOW,
-      ),
+      processDateDir("/logs/2026-08-15", 0, RULES),
     ).resolves.toBeUndefined();
     expect(fsMock.unlink).not.toHaveBeenCalled();
   });
@@ -144,19 +139,18 @@ describe("runLogRetention", () => {
     (LogHelper.getBaseLogDir as jest.Mock).mockResolvedValue("/logs");
   });
 
-  it("processes every LogSeverity subdirectory", async () => {
+  it("processes every <date>/ subdirectory of the log dir", async () => {
+    fsMock.readdir.mockImplementation((dir: string) =>
+      Promise.resolve(dir === "/logs" ? ["2026-08-01", "2026-08-14", "not-a-date"] : []),
+    );
+
     await runLogRetention(NOW);
 
     const dirsProcessed = fsMock.readdir.mock.calls.map(([dir]) => dir);
     expect(dirsProcessed).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("request"),
-        expect.stringContaining("info"),
-        expect.stringContaining("warning"),
-        expect.stringContaining("error"),
-        expect.stringContaining("critical"),
-      ]),
+      expect.arrayContaining(["/logs/2026-08-01", "/logs/2026-08-14"]),
     );
+    expect(dirsProcessed).not.toContain("/logs/not-a-date");
   });
 
   it("skips a run if the previous one is still in progress", async () => {
@@ -185,7 +179,7 @@ describe("runLogRetention", () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("skipped"));
   });
 
-  it("logs an ERROR via LogHelper if a severity directory fails unexpectedly", async () => {
+  it("logs an ERROR via LogHelper if reading the base log dir fails unexpectedly", async () => {
     fsMock.readdir.mockRejectedValue(new Error("disk error"));
 
     await runLogRetention(NOW);
