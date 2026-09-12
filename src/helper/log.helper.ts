@@ -33,12 +33,38 @@ export class LogHelper {
   private static resolvedLogDirPromise: Promise<string> | undefined;
   private static dateDirPromises = new Map<string, Promise<string>>();
 
+  /**
+   * Formats a Date using the timezone of the machine/process running the
+   * code (i.e. whatever `Date`'s local getters resolve to — the system
+   * timezone, or `TZ` if set), as an ISO-8601-like string with an explicit
+   * UTC offset, e.g. "2026-09-12T14:23:01.123+02:00". Deliberately not
+   * `toISOString()`, which is always UTC regardless of the host's clock —
+   * log timestamps should read in the host's local time.
+   */
+  private static formatLocalDateTime(date: Date): string {
+    const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+
+    const datePart =
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const timePart =
+      `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+      `.${pad(date.getMilliseconds(), 3)}`;
+
+    const offsetMinutes = -date.getTimezoneOffset();
+    const offsetSign = offsetMinutes >= 0 ? "+" : "-";
+    const absOffsetMinutes = Math.abs(offsetMinutes);
+    const offsetPart =
+      `${offsetSign}${pad(Math.floor(absOffsetMinutes / 60))}:${pad(absOffsetMinutes % 60)}`;
+
+    return `${datePart}T${timePart}${offsetPart}`;
+  }
+
   private static getTodayDate() {
-    return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    return this.formatLocalDateTime(new Date()).slice(0, 10); // YYYY-MM-DD (local)
   }
 
   private static getTodayDateTime() {
-    return new Date().toISOString(); // YYYY-MM-DDTHH:mm:ss.sssZ
+    return this.formatLocalDateTime(new Date()); // YYYY-MM-DDTHH:mm:ss.sss±HH:mm (local)
   }
 
   private static defaultLogDir(): string {
